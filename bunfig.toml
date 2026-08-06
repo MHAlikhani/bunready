@@ -1,0 +1,5 @@
+# Test configuration. Coverage is collected on demand (`bun test --coverage`);
+# the threshold exists so the CI gate and local runs agree on one number.
+[test]
+coverageThreshold = 0.9
+coverageSkipTestFiles = true

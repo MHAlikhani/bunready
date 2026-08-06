@@ -1,0 +1,64 @@
+{
+  "name": "bunready",
+  "version": "0.1.0",
+  "description": "Bun-readiness scanner: one command that shows what will break before you move a Node/TS repo to Bun.",
+  "keywords": [
+    "bun",
+    "migration",
+    "compatibility",
+    "scanner",
+    "cli",
+    "node",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "Mohammad Hosein Alikhani",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "bunready": "./src/cli/index.ts"
+  },
+  "files": [
+    "src",
+    "docs/brand",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "bun": ">=1.2.0"
+  },
+  "scripts": {
+    "bunready": "bun run src/cli/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "test": "bun test",
+    "build": "bun build ./src/cli/index.ts --target=bun --outdir=dist",
+    "check": "bun run typecheck && bun run lint && bun run test",
+    "og": "bun run scripts/generate-og-image.ts",
+    "prepare": "simple-git-hooks"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2",
+    "@commitlint/cli": "^20",
+    "@commitlint/config-conventional": "^20",
+    "@resvg/resvg-js": "^2",
+    "@types/bun": "^1",
+    "simple-git-hooks": "^2",
+    "typescript": "^5"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "bunx biome check --staged --no-errors-on-unmatched && bunx tsc --noEmit",
+    "commit-msg": "bunx commitlint --edit \"$1\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MHAlikhani/bunready.git"
+  },
+  "homepage": "https://github.com/MHAlikhani/bunready#readme",
+  "bugs": {
+    "url": "https://github.com/MHAlikhani/bunready/issues"
+  }
+}
