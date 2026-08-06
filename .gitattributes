@@ -1,0 +1,34 @@
+# Normalize all text files to LF in the repository.
+# Contributors on Windows keep CRLF locally via core.autocrlf=false + .editorconfig.
+* text=auto eol=lf
+
+# Explicitly text, even where a platform guess could go wrong.
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.sh   text eol=lf
+
+# SVG is text on purpose: it is diffable and reviewable.
+*.svg text eol=lf
+
+# Lockfiles stay diffable. Do NOT mark them `binary` / `-diff`:
+# a silent lockfile change is exactly the kind of regression we want to see in review.
+bun.lock    text eol=lf
+package-lock.json text eol=lf
+
+# True binaries: no EOL translation, no text diffing.
+*.png   binary
+*.gif   binary
+*.jpg   binary
+*.jpeg  binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+
+# Generated but committed (produced by scripts/generate-og-image.ts).
+assets/og.png binary
