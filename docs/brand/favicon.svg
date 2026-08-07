@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="bunready">
+  <title>bunready</title>
+  <rect width="64" height="64" rx="15" fill="#171A1F"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M25 20 L41 32 L25 44" stroke="#FBFAF7" stroke-width="5.5"/>
+    <path d="M26 50.5 H41" stroke="#D9944F" stroke-width="5.5"/>
+  </g>
+</svg>
