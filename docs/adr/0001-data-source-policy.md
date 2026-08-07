@@ -1,7 +1,7 @@
 # ADR 0001 - Compatibility data source policy
 
 - **Status:** accepted
-- **Date:** 2026-09-15
+- **Date:** 2026-08-07
 - **Context:** `bunready`'s only value is that its verdict can be trusted.
 
 ## Decision

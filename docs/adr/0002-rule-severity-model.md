@@ -1,7 +1,7 @@
 # ADR 0002 - Rule severity model
 
 - **Status:** accepted
-- **Date:** 2026-09-15
+- **Date:** 2026-08-07
 - **Context:** The report has to be actionable, and CI has to be able to gate on
   it, without turning a migration into a wall of red.
 
