@@ -1,4 +1,4 @@
-import type { Severity } from "../rules/severity";
+import { compareSeverity, type Severity } from "../rules/severity";
 
 /**
  * A single thing bunready can say about a target repo.
@@ -22,6 +22,15 @@ export interface Finding {
 
 export type Verdict = "ready" | "risky" | "blocked";
 
+/** What the scan looked at, so a verdict can be read in proportion. */
+export interface ScanStats {
+  readonly directDependencies: number;
+  readonly devDependencies: number;
+  readonly lockedPackages: number;
+  readonly duplicateVersions: number;
+  readonly lockfiles: readonly string[];
+}
+
 /** The machine-readable shape emitted by `--json`. */
 export interface ScanReport {
   readonly tool: string;
@@ -30,6 +39,19 @@ export interface ScanReport {
   readonly verdict: Verdict;
   readonly counts: Readonly<Record<Severity, number>>;
   readonly findings: readonly Finding[];
+  readonly stats?: ScanStats;
+}
+
+/** Blockers first, then risks, then info; stable within a severity. */
+export function sortFindings(findings: readonly Finding[]): Finding[] {
+  return [...findings].sort((a, b) => {
+    const bySeverity = compareSeverity(a.severity, b.severity);
+    if (bySeverity !== 0) {
+      return bySeverity;
+    }
+    const byId = a.id.localeCompare(b.id);
+    return byId !== 0 ? byId : a.title.localeCompare(b.title);
+  });
 }
 
 export function verdictFor(findings: readonly Finding[]): Verdict {
