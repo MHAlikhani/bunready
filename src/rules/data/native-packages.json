@@ -1,0 +1,81 @@
+{
+  "datasetVersion": "2026-09-15.1",
+  "note": "Packages that are known to ship a native addon or to download a platform binary at install time. Each entry asserts a property of the PACKAGE (visible in its own published metadata), not a Bun compatibility claim. bunready never asserts that one of these will fail on Bun; it reports the build step so the user can check their own platform. Entries are only added with a source link, per docs/adr/0001-data-source-policy.md.",
+  "packages": [
+    {
+      "name": "better-sqlite3",
+      "reason": "Native addon built with node-gyp; needs a matching prebuild or a working C++ toolchain.",
+      "source": "https://www.npmjs.com/package/better-sqlite3"
+    },
+    {
+      "name": "sharp",
+      "reason": "Ships prebuilt libvips binaries per platform and rebuilds from source when no prebuild matches.",
+      "source": "https://www.npmjs.com/package/sharp"
+    },
+    {
+      "name": "canvas",
+      "reason": "Native addon built with node-gyp against system cairo/pango libraries.",
+      "source": "https://www.npmjs.com/package/canvas"
+    },
+    {
+      "name": "bcrypt",
+      "reason": "Native addon built with node-gyp; the prebuild is platform specific.",
+      "source": "https://www.npmjs.com/package/bcrypt"
+    },
+    {
+      "name": "sqlite3",
+      "reason": "Native addon built with node-gyp, with a prebuild download step.",
+      "source": "https://www.npmjs.com/package/sqlite3"
+    },
+    {
+      "name": "node-sass",
+      "reason": "Native addon with a binary download step; deprecated upstream in favour of dart-sass.",
+      "source": "https://www.npmjs.com/package/node-sass"
+    },
+    {
+      "name": "argon2",
+      "reason": "Native addon built with node-gyp.",
+      "source": "https://www.npmjs.com/package/argon2"
+    },
+    {
+      "name": "leveldown",
+      "reason": "Native LevelDB binding built with node-gyp.",
+      "source": "https://www.npmjs.com/package/leveldown"
+    },
+    {
+      "name": "zeromq",
+      "reason": "Native addon with a bundled build step for libzmq.",
+      "source": "https://www.npmjs.com/package/zeromq"
+    },
+    {
+      "name": "isolated-vm",
+      "reason": "Native addon built with node-gyp.",
+      "source": "https://www.npmjs.com/package/isolated-vm"
+    },
+    {
+      "name": "node-pty",
+      "reason": "Native addon built with node-gyp or fetched as a prebuild.",
+      "source": "https://www.npmjs.com/package/node-pty"
+    },
+    {
+      "name": "bufferutil",
+      "reason": "Optional native addon with a node-gyp fallback build.",
+      "source": "https://www.npmjs.com/package/bufferutil"
+    },
+    {
+      "name": "utf-8-validate",
+      "reason": "Optional native addon with a node-gyp fallback build.",
+      "source": "https://www.npmjs.com/package/utf-8-validate"
+    },
+    {
+      "name": "puppeteer",
+      "reason": "Downloads a Chromium build in a postinstall script.",
+      "source": "https://www.npmjs.com/package/puppeteer"
+    },
+    {
+      "name": "@prisma/client",
+      "reason": "Runs a postinstall that generates and downloads query engine binaries.",
+      "source": "https://www.npmjs.com/package/@prisma/client"
+    }
+  ]
+}
