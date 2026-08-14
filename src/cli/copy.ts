@@ -4,21 +4,19 @@
  *
  * Voice: calm, precise, non-alarmist. State the fact, then the next step.
  */
-
+import { TOOL_NAME } from "../core/version";
 import type { Verdict } from "../report/types";
 import type { Severity } from "../rules/severity";
 
-export const TOOL = "bunready";
+export const TOOL = TOOL_NAME;
 
 export const POSITIONING = "Know what breaks before you move a Node/TS repo to Bun.";
 
 export const TAGLINE = "One command. One honest verdict.";
 
-export const SCANNER_NOT_IMPLEMENTED =
-  "the scanner engine is not implemented yet (phase 1 scaffold only)";
-
-export const SCANNER_NOT_IMPLEMENTED_HINT =
-  "see STATE.md for the roadmap, or run `bunready --help` for the planned surface";
+/** `--run` is planned, not built. Say so rather than scan silently and imply more. */
+export const RUN_NOT_IMPLEMENTED =
+  "--run is not implemented yet: this scan reads the repository and never executes the target's code";
 
 export function helpText(version: string): string {
   return [
@@ -35,8 +33,8 @@ export function helpText(version: string): string {
     "  -h, --help      Print this help and exit.",
     "  -v, --version   Print the version and exit.",
     "      --json      Emit a machine-readable report on stdout.",
-    "      --run       After scanning, exercise the target's own scripts under Bun",
-    "                  in a temporary copy. Off by default: it executes code.",
+    "      --run       Planned: exercise the target's own scripts under Bun in a",
+    "                  temporary copy. Not implemented yet.",
     "",
     "EXIT CODES",
     "  0   No blockers found.",

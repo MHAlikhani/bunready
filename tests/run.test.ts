@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { Io } from "../src/cli/io";
 import { run, version } from "../src/cli/run";
+import type { ScanReport } from "../src/report/types";
+import { makeDiskFixture } from "./helpers/disk-fixture";
 
 interface Capture {
   readonly io: Io;
@@ -12,47 +14,104 @@ function capture(env: Record<string, string | undefined> = {}, isTty = false): C
   const out: string[] = [];
   const err: string[] = [];
   return {
-    io: {
-      out: (line) => out.push(line),
-      err: (line) => err.push(line),
-      env,
-      isTty,
-    },
+    io: { out: (line) => out.push(line), err: (line) => err.push(line), env, isTty },
     out,
     err,
   };
 }
 
+async function withFixture<T>(
+  files: Record<string, string>,
+  body: (dir: string) => Promise<T>,
+): Promise<T> {
+  const fixture = await makeDiskFixture(files);
+  try {
+    return await body(fixture.dir);
+  } finally {
+    await fixture.cleanup();
+  }
+}
+
+const CLEAN_REPO = { "package.json": JSON.stringify({ name: "clean-app" }) };
+
+const BLOCKED_REPO = {
+  "package.json": JSON.stringify({ name: "blocked-app", dependencies: { sharp: "^0.32.0" } }),
+  "package-lock.json": JSON.stringify({
+    lockfileVersion: 3,
+    packages: {
+      "": { name: "blocked-app" },
+      "node_modules/sharp": { version: "0.32.6", hasInstallScript: true },
+    },
+  }),
+};
+
 describe("run", () => {
   test("--help prints usage on stdout and exits 0", async () => {
     const { io, out } = capture();
-    const code = await run(["--help"], io);
-    expect(code).toBe(0);
+    expect(await run(["--help"], io)).toBe(0);
     expect(out.join("\n")).toContain("USAGE");
     expect(out.join("\n")).toContain("EXIT CODES");
   });
 
   test("--version prints the package version on stdout and exits 0", async () => {
     const { io, out } = capture();
-    const code = await run(["--version"], io);
-    expect(code).toBe(0);
+    expect(await run(["--version"], io)).toBe(0);
     expect(out[0]).toBe(`bunready ${version()}`);
   });
 
   test("an unknown option exits 2 with a usage error on stderr", async () => {
     const { io, out, err } = capture();
-    const code = await run(["--wat"], io);
-    expect(code).toBe(2);
+    expect(await run(["--wat"], io)).toBe(2);
     expect(out).toHaveLength(0);
     expect(err.join("\n")).toContain("E_USAGE");
   });
 
-  test("a scan exits non-zero and never fabricates findings", async () => {
-    const { io, out, err } = capture();
-    const code = await run(["."], io);
-    expect(code).not.toBe(0);
-    expect(out).toHaveLength(0);
-    expect(err.join("\n")).toContain("not implemented");
+  test("a repo with no blockers exits 0 and says ready", async () => {
+    await withFixture(CLEAN_REPO, async (dir) => {
+      const { io, out } = capture();
+      expect(await run([dir], io)).toBe(0);
+      expect(out.join("\n")).toContain("ready - no Bun compatibility blockers found");
+    });
+  });
+
+  test("a repo with a blocked install exits 1", async () => {
+    await withFixture(BLOCKED_REPO, async (dir) => {
+      const { io, out } = capture();
+      expect(await run([dir], io)).toBe(1);
+      const text = out.join("\n");
+      expect(text).toContain("blocker");
+      expect(text).toContain("blocked");
+    });
+  });
+
+  test("--json emits a parseable ScanReport", async () => {
+    await withFixture(BLOCKED_REPO, async (dir) => {
+      const { io, out } = capture();
+      expect(await run([dir, "--json"], io)).toBe(1);
+      const report = JSON.parse(out.join("\n")) as ScanReport;
+      expect(report.tool).toBe("bunready");
+      expect(report.verdict).toBe("blocked");
+      expect(report.findings.length).toBeGreaterThan(0);
+      expect(report.counts.blocker).toBeGreaterThan(0);
+    });
+  });
+
+  test("--run says it is not implemented and still scans", async () => {
+    await withFixture(CLEAN_REPO, async (dir) => {
+      const { io, out, err } = capture();
+      expect(await run([dir, "--run"], io)).toBe(0);
+      expect(err.join("\n")).toContain("not implemented");
+      expect(out.join("\n")).toContain("ready");
+    });
+  });
+
+  test("a directory without a package.json exits 2 with E_IO", async () => {
+    await withFixture({}, async (dir) => {
+      const { io, out, err } = capture();
+      expect(await run([dir], io)).toBe(2);
+      expect(out).toHaveLength(0);
+      expect(err.join("\n")).toContain("E_IO");
+    });
   });
 
   test("colour is emitted only when the stream is interactive", async () => {

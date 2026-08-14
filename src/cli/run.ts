@@ -1,7 +1,11 @@
-import packageJson from "../../package.json";
 import { formatError } from "../core/errors";
+import { TOOL_VERSION } from "../core/version";
+import { renderHumanReport } from "../report/human";
+import { renderJsonReport } from "../report/json";
+import { exitCodeForSeverities } from "../rules/severity";
+import { scanTarget } from "../scanner/scan";
 import { parseArgs } from "./args";
-import { helpText, SCANNER_NOT_IMPLEMENTED, SCANNER_NOT_IMPLEMENTED_HINT, TOOL } from "./copy";
+import { helpText, RUN_NOT_IMPLEMENTED, TOOL } from "./copy";
 import { type Io, systemIo } from "./io";
 import { colorEnabled, createTheme } from "./theme";
 
@@ -10,7 +14,7 @@ export const EXIT_BLOCKERS = 1;
 export const EXIT_USAGE = 2;
 
 export function version(): string {
-  return packageJson.version;
+  return TOOL_VERSION;
 }
 
 /**
@@ -40,9 +44,19 @@ export async function run(argv: readonly string[], io: Io = systemIo()): Promise
     return EXIT_OK;
   }
 
-  // Phase 2 and 3 replace this branch with the real scan. Until then the tool
-  // refuses to pretend: no findings are printed and the exit code is non-zero.
-  io.err(`${theme.yellow("!")} ${SCANNER_NOT_IMPLEMENTED}`);
-  io.err(`${theme.dim("hint:")} ${SCANNER_NOT_IMPLEMENTED_HINT}`);
-  return EXIT_USAGE;
+  if (options.run) {
+    io.err(`${theme.yellow("!")} ${RUN_NOT_IMPLEMENTED}`);
+  }
+
+  const scan = await scanTarget(options.target);
+  if (!scan.ok) {
+    io.err(`${theme.red("error")} ${formatError(scan.error)}`);
+    return EXIT_USAGE;
+  }
+
+  const report = scan.value;
+  io.out(options.json ? renderJsonReport(report) : renderHumanReport(report, theme));
+
+  const exitCode = exitCodeForSeverities(report.findings.map((finding) => finding.severity));
+  return exitCode === 0 ? EXIT_OK : EXIT_BLOCKERS;
 }
