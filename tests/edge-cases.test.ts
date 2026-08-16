@@ -125,6 +125,7 @@ describe("readTarget failure paths", () => {
           ? { kind: "error", error: defineError("E_IO", "permission denied") }
           : { kind: "missing" },
       pathExists: async () => false,
+      listDirectory: async () => [],
     };
 
     const result = await readTarget(FIXTURE_DIR, failing);
@@ -146,6 +147,7 @@ describe("readTarget failure paths", () => {
         return { kind: "missing" };
       },
       pathExists: async () => false,
+      listDirectory: async () => [],
     };
 
     const result = await readTarget(FIXTURE_DIR, failing);

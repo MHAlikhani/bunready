@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { type BunreadyError, defineError } from "./errors";
 
 /**
@@ -12,9 +12,15 @@ export type ReadOutcome =
   | { readonly kind: "error"; readonly error: BunreadyError };
 
 /** Minimal file seam, so scanners can be exercised without touching the disk. */
+export interface DirectoryEntry {
+  readonly name: string;
+  readonly isDirectory: boolean;
+}
+
 export interface FileSystem {
   readonly readTextFile: (path: string) => Promise<ReadOutcome>;
   readonly pathExists: (path: string) => Promise<boolean>;
+  readonly listDirectory: (path: string) => Promise<readonly DirectoryEntry[]>;
 }
 
 function describe(error: unknown): string {
@@ -46,6 +52,16 @@ export function nodeFileSystem(): FileSystem {
         return true;
       } catch {
         return false;
+      }
+    },
+    listDirectory: async (path) => {
+      try {
+        const entries = await readdir(path, { withFileTypes: true });
+        return entries
+          .map((entry) => ({ name: entry.name, isDirectory: entry.isDirectory() }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+      } catch {
+        return [];
       }
     },
   };
