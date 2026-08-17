@@ -1,0 +1,6 @@
+{
+  "datasetVersion": "2026-09-15.1",
+  "compatibilityDocs": "https://bun.com/docs/runtime/nodejs-compat",
+  "note": "Runtime compatibility data. `gaps` is intentionally EMPTY: every entry here asserts that a specific Node built-in is partial or missing, and that claim needs a primary source that was read, not remembered. Bun's own position is that a package working in Node.js and failing in Bun is a bug in Bun, so a module is only listed once a specific issue or documentation entry establishes the gap. Until then bunready reports what the repository imports and points at the compatibility table instead of guessing.",
+  "gaps": []
+}

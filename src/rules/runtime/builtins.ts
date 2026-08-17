@@ -1,0 +1,148 @@
+import type { Finding } from "../../report/types";
+import { classifySpecifier, type SourceScan } from "../../scanner/sources";
+import runtimeDataset from "../data/node-runtime.json";
+
+/**
+ * Runtime-phase rule: what Node surface the repository actually depends on.
+ *
+ * The finding is deliberately an inventory with a pointer, not a verdict. Bun's
+ * Node compatibility is broad, actively changing, and version-dependent, so
+ * bunready only asserts what it can observe (these modules are imported in these
+ * files) and cites the compatibility table. A module is called out as a risk
+ * only when the vendored dataset carries a primary source for that specific
+ * claim - see docs/adr/0001-data-source-policy.md.
+ */
+const INVENTORY_ID = "runtime/node-builtins";
+const GAP_ID = "runtime/known-gap";
+const COVERAGE_ID = "runtime/scan-coverage";
+const MAX_LISTED_MODULES = 8;
+
+export interface RuntimeGapEntry {
+  readonly name: string;
+  readonly status: "partial" | "unimplemented";
+  readonly note: string;
+  readonly source: string;
+}
+
+export interface RuntimeDataset {
+  readonly compatibilityDocs: string | undefined;
+  readonly gaps: readonly RuntimeGapEntry[];
+}
+
+export interface BuiltinUsage {
+  readonly name: string;
+  readonly files: readonly string[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Validate the vendored dataset instead of trusting the import blindly. */
+export function readRuntimeDataset(raw: unknown = runtimeDataset): RuntimeDataset {
+  if (!isRecord(raw)) {
+    return { compatibilityDocs: undefined, gaps: [] };
+  }
+
+  const gaps: RuntimeGapEntry[] = [];
+  for (const candidate of Array.isArray(raw.gaps) ? raw.gaps : []) {
+    if (!isRecord(candidate)) {
+      continue;
+    }
+    const { name, status, note, source } = candidate;
+    if (
+      typeof name === "string" &&
+      (status === "partial" || status === "unimplemented") &&
+      typeof note === "string" &&
+      typeof source === "string"
+    ) {
+      gaps.push({ name, status, note, source });
+    }
+  }
+
+  return {
+    compatibilityDocs:
+      typeof raw.compatibilityDocs === "string" ? raw.compatibilityDocs : undefined,
+    gaps,
+  };
+}
+
+/** Node built-ins imported by the repository's own code, with where they appear. */
+export function collectNodeBuiltins(scan: SourceScan): BuiltinUsage[] {
+  const filesByName = new Map<string, Set<string>>();
+
+  for (const file of scan.files) {
+    for (const ref of file.imports) {
+      if (classifySpecifier(ref.specifier) !== "node-builtin") {
+        continue;
+      }
+      const name = ref.specifier.startsWith("node:") ? ref.specifier.slice(5) : ref.specifier;
+      const bucket = filesByName.get(name) ?? new Set<string>();
+      bucket.add(file.path);
+      filesByName.set(name, bucket);
+    }
+  }
+
+  return [...filesByName.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([name, files]) => ({ name, files: [...files].sort() }));
+}
+
+function normalise(name: string): string {
+  return name.startsWith("node:") ? name.slice(5) : name;
+}
+
+export function runtimeBuiltinFindings(
+  scan: SourceScan,
+  usages: readonly BuiltinUsage[],
+  dataset: RuntimeDataset = readRuntimeDataset(),
+): Finding[] {
+  const findings: Finding[] = [];
+  const byName = new Map(usages.map((usage) => [normalise(usage.name), usage]));
+
+  if (usages.length > 0) {
+    const listed = usages.slice(0, MAX_LISTED_MODULES).map((usage) => usage.name);
+    const remainder = usages.length - listed.length;
+    const fileCount = new Set(usages.flatMap((usage) => usage.files)).size;
+    findings.push({
+      id: INVENTORY_ID,
+      severity: "info",
+      title: `the project's own code imports ${usages.length} Node built-in module(s)`,
+      detail:
+        "Bun implements a large and still-moving part of the Node API. These are the modules this repository depends on; each was found by scanning the repository's own source, not its dependencies.",
+      evidence: `${listed.join(", ")}${remainder > 0 ? ` and ${remainder} more` : ""} (in ${fileCount} file(s))`,
+      ...(dataset.compatibilityDocs === undefined ? {} : { source: dataset.compatibilityDocs }),
+      hint: "run the project's own test suite under Bun: it decides more about your code than a compatibility table can.",
+    });
+  }
+
+  for (const gap of dataset.gaps) {
+    const usage = byName.get(normalise(gap.name));
+    if (usage === undefined) {
+      continue;
+    }
+    findings.push({
+      id: GAP_ID,
+      severity: "risk",
+      title: `${gap.name} is ${gap.status} in Bun and this project imports it`,
+      detail: gap.note,
+      evidence: `${usage.files.length} file(s), first at ${usage.files[0] ?? "unknown"}`,
+      source: gap.source,
+      hint: `check ${gap.name} against the compatibility table and cover it with a test before switching.`,
+    });
+  }
+
+  if (scan.truncated) {
+    findings.push({
+      id: COVERAGE_ID,
+      severity: "info",
+      title: "the source scan stopped at its file limit",
+      detail:
+        "The import inventory covers only part of the repository, so an imported module may be missing from it.",
+      evidence: `scanned ${scan.filesScanned} source file(s)`,
+      hint: "scan a subdirectory, or raise the limit if you need the complete inventory.",
+    });
+  }
+
+  return findings;
+}
