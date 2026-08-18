@@ -29,6 +29,8 @@ export interface ScanStats {
   readonly lockedPackages: number;
   readonly duplicateVersions: number;
   readonly lockfiles: readonly string[];
+  readonly sourceFiles: number;
+  readonly nodeBuiltins: number;
 }
 
 /** The machine-readable shape emitted by `--json`. */

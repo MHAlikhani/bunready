@@ -1,11 +1,14 @@
 import type { Result } from "../core/errors";
 import { type FileSystem, nodeFileSystem } from "../core/fs";
 import { TOOL_NAME, TOOL_VERSION } from "../core/version";
-import { type ScanReport, verdictFor } from "../report/types";
+import { type ScanReport, sortFindings, verdictFor } from "../report/types";
 import { installFindings } from "../rules/install";
 import type { RuntimeInfo } from "../rules/install/engines";
+import { runtimeFindings } from "../rules/runtime";
+import { collectNodeBuiltins } from "../rules/runtime/builtins";
 import { countBySeverity } from "../rules/severity";
 import { buildGraph } from "./graph";
+import { scanSources } from "./sources";
 import { readTarget } from "./target";
 
 /** The runtime the scan runs under. Injected in tests so results are stable. */
@@ -21,10 +24,10 @@ export interface ScanOptions {
 /**
  * Scan one repository.
  *
- * Read-only by construction: this function opens package.json, the lockfiles
- * and installed dependency manifests, and never executes the target's code.
- * Everything that could not be read ends up in the report as a finding rather
- * than being silently dropped.
+ * Read-only by construction: this function opens package.json, the lockfiles,
+ * installed dependency manifests and the repository's own source, and never
+ * executes the target's code. Everything that could not be read ends up in the
+ * report as a finding rather than being silently dropped.
  */
 export async function scanTarget(
   dir: string,
@@ -40,7 +43,13 @@ export async function scanTarget(
 
   const snapshot = target.value;
   const graph = buildGraph(snapshot.manifest, snapshot.lockfiles[0]?.parsed);
-  const findings = installFindings(snapshot, graph, runtime);
+  const sources = await scanSources(dir, fs);
+  const usages = collectNodeBuiltins(sources);
+
+  const findings = sortFindings([
+    ...installFindings(snapshot, graph, runtime),
+    ...runtimeFindings(sources, usages),
+  ]);
   const counts = countBySeverity(findings.map((finding) => finding.severity));
 
   return {
@@ -58,6 +67,8 @@ export async function scanTarget(
         lockedPackages: graph.lockedPackages,
         duplicateVersions: graph.duplicates.length,
         lockfiles: snapshot.lockfiles.map((entry) => entry.path),
+        sourceFiles: sources.filesScanned,
+        nodeBuiltins: usages.length,
       },
     },
   };

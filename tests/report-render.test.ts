@@ -35,6 +35,8 @@ const REPORT: ScanReport = {
     lockedPackages: 1,
     duplicateVersions: 0,
     lockfiles: ["C:\\work\\app\\package-lock.json"],
+    sourceFiles: 4,
+    nodeBuiltins: 2,
   },
 };
 

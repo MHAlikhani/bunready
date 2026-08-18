@@ -32,6 +32,9 @@ export function renderHumanReport(report: ScanReport, theme: Theme): string {
     if (report.stats.duplicateVersions > 0) {
       facts.push(`${report.stats.duplicateVersions} duplicated`);
     }
+    if (report.stats.sourceFiles > 0) {
+      facts.push(`${report.stats.sourceFiles} source files`);
+    }
     if (report.stats.lockfiles.length > 0) {
       facts.push(
         report.stats.lockfiles.map((path) => path.split(/[\\/]/).pop() ?? path).join(", "),
