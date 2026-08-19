@@ -43,6 +43,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reports "could not evaluate" instead of guessing.
 - Report renderers: a human report (`src/report/human.ts`) and `--json`
   (`src/report/json.ts`), with `ScanReport.stats` for context behind a verdict.
+- Runtime-phase rule (`src/rules/runtime/`): the Node built-in modules the
+  repository's own code imports, reported as an inventory with a link to Bun's
+  compatibility table rather than as a verdict bunready cannot source.
+- Import scanning (`src/scanner/sources.ts`): a regex-based extractor that masks
+  strings and comments first, so a fixture containing import-shaped text is not
+  counted as an import. The walk skips `node_modules` and build output, and
+  reports when it hits its file cap.
+- `ScanReport.stats` now also carries the source-file count and the number of
+  Node built-ins found.
 
 ### Changed
 
@@ -54,8 +63,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
-- Runtime-phase rules (Node built-ins and APIs Bun does not implement, and a
-  curated list of packages known to misbehave at runtime) are not implemented
-  yet. The verdict is an install-phase verdict.
+- `src/rules/data/node-runtime.json` ships an empty `gaps` list on purpose: each
+  entry would assert that a specific Node built-in is partial or missing in Bun,
+  and that claim needs a primary source. Until then the rule reports what the
+  repository imports and cites the compatibility table.
+- `--run` (executing the target's own scripts under Bun) is not implemented yet;
+  the flag says so before scanning.
 
 [Unreleased]: https://github.com/MHAlikhani/bunready/commits/main
