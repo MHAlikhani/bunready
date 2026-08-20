@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: every job here only reads the repository. Nothing needs to
+# write, publish, or mint a token.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, bun ${{ matrix.bun }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Report every platform's result instead of stopping at the first failure:
+      # a Windows-only break should not hide a macOS one.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        # `latest` is the current release; the second entry is the oldest line
+        # this project claims to support in package.json (`engines.bun`).
+        bun: [latest, "1.2.x"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ matrix.bun }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint and format
+        run: bunx biome ci .
+
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+      - name: Test with coverage
+        run: bun test --coverage
+
+      - name: Build
+        run: bun build ./src/cli/index.ts --target=bun --outdir=dist
