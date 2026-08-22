@@ -4,14 +4,14 @@
 
 **One command that tells you what will break before you move a Node/TS repo to Bun — and gives you one clear verdict.**
 
-[![status](https://img.shields.io/badge/status-pre--alpha-orange)](#status)
+[![ci](https://github.com/MHAlikhani/bunready/actions/workflows/ci.yml/badge.svg)](https://github.com/MHAlikhani/bunready/actions/workflows/ci.yml)
+[![security](https://github.com/MHAlikhani/bunready/actions/workflows/security.yml/badge.svg)](https://github.com/MHAlikhani/bunready/actions/workflows/security.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![runtime](https://img.shields.io/badge/runtime-Bun%20%E2%89%A5%201.2-black)](https://bun.sh)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](tsconfig.json)
+[![status](https://img.shields.io/badge/status-pre--alpha-orange)](#status)
 
-<!-- Badges below become live once .github/workflows/ci.yml exists (CI phase).
-[![ci](https://github.com/MHAlikhani/bunready/actions/workflows/ci.yml/badge.svg)](https://github.com/MHAlikhani/bunready/actions/workflows/ci.yml)
-[![coverage](https://img.shields.io/badge/coverage-unknown-lightgrey)](#)
+<!-- The npm badge goes live with the first publish.
 [![npm](https://img.shields.io/npm/v/bunready)](https://www.npmjs.com/package/bunready)
 -->
 
@@ -21,10 +21,13 @@
 
 ## Status
 
-Pre-alpha. The scanner engine is **not implemented yet**: the current CLI resolves
-arguments, prints help/version, and exits non-zero with an explicit
-"scanner not implemented yet" message. It never prints fabricated findings.
-See [STATE.md](STATE.md) for what exists and what does not.
+Pre-alpha, and precise about it. `bunready <path>` reads `package.json`, any
+lockfile, and the repository's own imports, then prints a report with a verdict
+and an exit code CI can gate on.
+
+What it does not do yet: `--run` (executing the target's scripts under Bun) is
+accepted and reported as unimplemented, and no Node-runtime gap is claimed
+without a source. See [STATE.md](STATE.md) for what exists and what does not.
 
 ## Install
 
@@ -42,18 +45,16 @@ bun install
 # from a checkout
 bun run src/cli/index.ts --help
 
-# against a target repository (engine lands in a later phase)
+# against a target repository
 bun run src/cli/index.ts /path/to/node-project
 ```
-
-Planned surface (not all flags are implemented in this phase):
 
 | Flag | Meaning |
 | --- | --- |
 | `--help` | Print usage and exit. |
 | `--version` | Print the CLI version and exit. |
 | `--json` | Emit machine-readable JSON instead of the terminal report. |
-| `--run` | Execute a command under Bun after scanning. |
+| `--run` | Planned: run the target's own scripts under Bun in a temporary copy. Not implemented yet; the flag says so before scanning. |
 | `NO_COLOR` | Environment variable: disable ANSI color when set. |
 
 Exit codes: `0` no blockers, `1` blockers found, `2` usage error.
