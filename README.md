@@ -7,7 +7,7 @@
 [![ci](https://github.com/MHAlikhani/bunready/actions/workflows/ci.yml/badge.svg)](https://github.com/MHAlikhani/bunready/actions/workflows/ci.yml)
 [![security](https://github.com/MHAlikhani/bunready/actions/workflows/security.yml/badge.svg)](https://github.com/MHAlikhani/bunready/actions/workflows/security.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![runtime](https://img.shields.io/badge/runtime-Bun%20%E2%89%A5%201.2-black)](https://bun.sh)
+[![runtime](https://img.shields.io/badge/runtime-Bun%20%E2%89%A5%201.4-black)](https://bun.sh)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](tsconfig.json)
 [![status](https://img.shields.io/badge/status-pre--alpha-orange)](#status)
 
