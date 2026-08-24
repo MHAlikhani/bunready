@@ -52,6 +52,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reports when it hits its file cap.
 - `ScanReport.stats` now also carries the source-file count and the number of
   Node built-ins found.
+- Continuous integration: `.github/workflows/ci.yml` runs lint, typecheck, tests
+  with coverage and a build on Ubuntu, macOS and Windows, against both the
+  current Bun release and the exact floor `engines.bun` claims.
+- `.github/workflows/security.yml`: gitleaks secret scanning, CodeQL code
+  scanning (`security-and-quality`) and `bun audit`, on pushes, pull requests and
+  a weekly schedule.
+- `.github/dependabot.yml`: weekly updates for dev dependencies and for GitHub
+  Actions, so the SHA pins stay current.
+- Live CI and security badges in the README.
 
 ### Changed
 
@@ -60,6 +69,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stderr before scanning.
 - Paths in findings print with forward slashes, so output is identical on every
   operating system.
+
+### Fixed
+
+- `engines.bun` now declares `>=1.4.0`. The previous `>=1.2.0` claim was wrong:
+  the committed `bun.lock` is text lockfile format version 2, which Bun 1.2 and
+  1.3 reject with an unknown-lockfile-version error. The CI matrix caught it on
+  its first run.
 
 ### Notes
 

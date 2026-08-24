@@ -9,11 +9,13 @@ Read this instead of the repository. Keep it under 120 lines.
 - Phase 0 (name gate + git bootstrap): **done**.
 - Phase 1 (brand + core scaffold): **done, verified**.
 - Phase 2 (dependency graph + install-phase rules + report): **done, verified**.
-- Phase 3 (runtime-phase rules): **partly done** - import/built-in inventory ships;
-  the sourced "known runtime gap" dataset is empty by policy (see D19).
-- Phases 4-6 (`--run`, CI/CD, release): **not started**.
-- Commit dates are deliberate: the history runs 2026-08-06 -> 2026-08-19 and new
-  commits continue from the previous commit's date, not from the wall clock (D17).
+- Phase 3 (runtime-phase rules): **import inventory done**; the sourced gap dataset
+  is empty by policy (D19).
+- Phase 5 (CI/CD): **CI + security live and green on main**; `release.yml`,
+  branch protection and Dependabot triage are the remaining pieces.
+- Phase 4 (`--run`) and Phase 6 (docs + first release): **not started**.
+- Commit dates are deliberate: the history runs 2026-08-06 onwards and new commits
+  continue from the previous commit's date, not from the wall clock (D17).
 
 ## Name gate evidence (2026-09-15)
 
@@ -30,19 +32,22 @@ Read this instead of the repository. Keep it under 120 lines.
 | D5 | `run(argv, io)` is the whole CLI; `index.ts` is 2 lines | Every behaviour is testable. |
 | D6 | Colour never carries meaning alone | `NO_COLOR`, CI logs keep full information. |
 | D7 | Hooks via `simple-git-hooks`; commits gated by commitlint | Pure JS, no binary download. |
-| D8 | Branch protection deferred to the CI phase | Required checks need CI to exist. |
-| D9 | Compat data is vendored, versioned JSON with `source` links | ADR 0001; offline, never phones home. |
+| D8 | Branch protection lands with the CI phase | Required checks need CI to exist. |
+| D9 | Compat data is vendored, versioned JSON with `source` links | ADR 0001. |
 | D10 | `organizeImports` on in Biome | Import order is not a review topic. |
 | D11 | A finding must rest on the lockfile, an installed manifest, or a curated entry with a source | Nothing is inferred from a package name. |
-| D12 | `installScript` is true only when the format records it (npm `hasInstallScript`, pnpm `requiresBuild`) | A real `bun.lock` records none. |
+| D12 | `installScript` is true only when the format records it | A real `bun.lock` records none. |
 | D13 | Lockfile parsers are hand-written; an unparseable lockfile is a reported finding | Reporting zero packages would look like a clean verdict. |
 | D14 | `engines` uses a minimal in-repo semver subset; unparseable ranges report "could not evaluate" | Never turn "we do not know" into a false. |
-| D15 | Native addons are `risk`, never `blocker` | Prebuilds usually exist; "will fail" is not provable offline. |
+| D15 | Native addons are `risk`, never `blocker` | Prebuilds usually exist. |
 | D16 | Coverage threshold is enforced per file, not globally | Bun applies `coverageThreshold` per file. |
-| D17 | New commits continue from the previous commit's date, not the wall clock | Requested; keeps one coherent timeline. |
-| D18 | Import scanning is regex-based over the repository's own source, with strings and comments masked first | No parser dependency; masking removed false positives from fixtures inside string literals. |
-| D19 | No module is listed as a Bun runtime gap without a primary source, so the shipped gap dataset may be empty | ADR 0001: the inventory plus a citation beats a remembered claim. |
-| D20 | The source walk is capped (2000 files) and hitting the cap is reported as a finding | A partial inventory must say it is partial. |
+| D17 | New commits continue from the previous commit's date | Requested; one coherent timeline. |
+| D18 | Import scanning is regex-based with strings and comments masked first | No parser dependency; masking removed string-literal false positives. |
+| D19 | No module is listed as a Bun runtime gap without a primary source | ADR 0001; the gap dataset may therefore be empty. |
+| D20 | The source walk is capped (2000 files) and hitting the cap is a finding | A partial inventory must say it is partial. |
+| D21 | CI tests the current release **and the exact floor** `package.json` claims | The floor is a promise; an untested promise is a guess. |
+| D22 | Every action is pinned to a commit SHA with a `# vX` comment | Supply-chain hygiene; the comment is what Dependabot reads. |
+| D23 | No coverage badge until there is a source of truth for it | A hand-updated badge drifts, and auto-committing one conflicts with protected main. |
 
 ## Public interfaces
 
@@ -53,21 +58,14 @@ FileSystem { readTextFile, pathExists, listDirectory }, DirectoryEntry, nodeFile
 TOOL_NAME, TOOL_VERSION
 
 // scanner
-parseManifest(text, source) -> Result<Manifest>
-parseLockfile(kind, text, path?) -> Result<ParsedLockfile>   // kind: bun|npm|yarn|pnpm
-buildGraph(manifest, lockfile?) -> DependencyGraph
-readTarget(dir, fs?) -> Result<TargetSnapshot>
-scanTarget(dir, { fs?, runtime? }) -> Result<ScanReport>
-scanSources(dir, fs, { maxFiles? }) -> SourceScan
-extractImports(text) -> ImportRef[], maskNonCode(text) -> string
-classifySpecifier(specifier), nodeBuiltinNames() -> Set<string>
-satisfies(version, range) -> boolean | undefined
+parseManifest, parseLockfile(kind, text, path?), buildGraph, readTarget, scanTarget
+scanSources(dir, fs, { maxFiles? }), extractImports(text), maskNonCode(text)
+classifySpecifier(specifier), nodeBuiltinNames(), satisfies(version, range)
 
 // rules
 SEVERITIES, countBySeverity, exitCodeForSeverities, compareSeverity
-installFindings(snapshot, graph, runtime) -> Finding[]
-runtimeFindings(sourceScan, usages, dataset?) -> Finding[]
-collectNodeBuiltins(sourceScan) -> BuiltinUsage[], readRuntimeDataset(raw?)
+installFindings(snapshot, graph, runtime), runtimeFindings(scan, usages, dataset?)
+collectNodeBuiltins(scan), readRuntimeDataset(raw?)
 
 // report / cli
 Finding, ScanReport, ScanStats, verdictFor, sortFindings
@@ -77,31 +75,27 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 
 ## File map
 
-- `src/cli/` - `index.ts` (entry), `run.ts`, `args.ts`, `copy.ts` (all user
-  strings), `io.ts`, `theme.ts`.
-- `src/core/` - `errors.ts`, `fs.ts` (file seam), `version.ts`.
-- `src/scanner/` - `manifest.ts`, `lockfile.ts` (4 formats + JSONC), `graph.ts`,
-  `target.ts`, `sources.ts` (import extraction), `scan.ts`, `semver.ts`.
-- `src/rules/install/` - `lifecycle-scripts.ts`, `native-addon.ts`, `engines.ts`,
-  `lockfile-presence.ts`, `index.ts`.
-- `src/rules/runtime/` - `builtins.ts`, `index.ts`.
-- `src/rules/data/` - `native-packages.json`, `node-runtime.json`.
-- `src/report/` - `types.ts`, `human.ts`, `json.ts`.
-- `tests/` - 19 files, including `helpers/{memory-fs,disk-fixture}.ts`.
-- `docs/brand/`, `docs/adr/`, `assets/`, `scripts/`, `STATE.md`.
+- `src/cli/`, `src/core/`, `src/scanner/`, `src/rules/{install,runtime,data}/`,
+  `src/report/` - see the phase 2/3 sections of the changelog for the split.
+- `.github/workflows/ci.yml` - 3 OSes x {latest, 1.4.0}: install, biome, tsc,
+  coverage, build.
+- `.github/workflows/security.yml` - gitleaks, CodeQL (`security-and-quality`),
+  `bun audit`; weekly schedule.
+- `.github/dependabot.yml` - weekly, grouped dev dependencies.
+- `tests/` (19 files), `docs/brand/`, `docs/adr/`, `assets/`, `scripts/`.
 
-## Verification (last run, phase 3)
+## Verification (phase 5, CI run 35027688877 on `5268a87`)
 
-| Check | Command | Result |
+| Check | Where | Result |
 | --- | --- | --- |
-| Lint + format | `bunx biome ci .` | exit 0, no notices |
+| Lint + format | `bunx biome ci .` | exit 0 |
 | Types | `bunx tsc --noEmit` | exit 0 |
 | Tests | `bun test` | 148 pass / 0 fail |
-| Coverage | `bun test --coverage` | 99.76% funcs / 98.70% lines, per-file gate 0.9 |
-| Build | `bun build ./src/cli/index.ts --target=bun --outdir=dist` | exit 0 |
-| End-to-end | `bun run src/cli/index.ts .` | exit 1 on our own repo (see O5) |
-| Runtime rule | same, `--json` | inventory: `fs/promises, module, os, path` in 6 files |
-| Perf | `Measure-Command { bun run src/cli/index.ts . }` | ~147 ms, 106 locked packages, 50 source files |
+| Coverage | `bun test --coverage` | 99.76% funcs / 98.70% lines |
+| CI matrix | GitHub Actions `ci` | 6/6 green: ubuntu, macos, windows x latest, 1.4.0 |
+| Secret scanning | gitleaks | success |
+| Code scanning | CodeQL | success |
+| Dependency audit | `bun audit` | success |
 
 ## Open questions
 
@@ -111,17 +105,18 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
   failure (phase 4).
 - **O4** Duplicate versions are in `ScanReport.stats` but not yet a finding.
 - **O5** Scanning bunready itself exits 1: `simple-git-hooks` declares a
-  `postinstall` and is not in `trustedDependencies`. Decide: trust it, drop it,
-  or accept the finding.
+  `postinstall` and is not in `trustedDependencies`.
 - **O6** `--json` has no schema version field. Add one before CI parses it.
-- **O7** `src/rules/data/node-runtime.json` ships an empty `gaps` list: entries
-  need a primary source that is actually read (an issue or docs entry), and one
-  search was not enough to establish any module's status honestly.
-- **O8** The source walk includes `tests/`; a repository with large fixtures may
-  want an exclude list.
+- **O7** `node-runtime.json` ships an empty `gaps` list: entries need a primary
+  source that is actually read.
+- **O8** The source walk includes `tests/`; large fixtures may want an exclude list.
+- **O9** Two Dependabot PRs (codeql-action init/analyze to v4) fail their own
+  security run. Triage: hold at v3, or adapt the workflow for v4.
+- **O10** `release.yml` needs npm trusted publishing configured on npmjs.com
+  (owner action) before the first publish can use OIDC without a token.
 
 ## Next action
 
-Phase 4 (`--run`: execute the target's start/test script under Bun in a temp copy
-and capture the first real failure), or fill O7 first if a sourced gap list is
-wanted sooner.
+Phase 6: `release.yml` (tag -> assert CI green -> publish with provenance ->
+binaries + SHA256SUMS + SBOM), README/docs pass, then `v0.1.0`. Phase 4 (`--run`)
+stays open and is the last functional gap.
