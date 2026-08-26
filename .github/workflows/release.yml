@@ -1,0 +1,167 @@
+name: release
+
+# A tag is the only way in. Nothing here runs on a branch, so a release cannot
+# happen by accident.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: assert ci is green on the tagged commit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      # A tag can be pushed at any commit. Refuse to publish unless the full CI
+      # matrix already succeeded on exactly this SHA.
+      - name: Check the ci workflow succeeded for this commit
+        env:
+          GH_TOKEN: *** secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          success=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&status=completed" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')
+          if [ "${success}" -lt 1 ]; then
+            echo "::error::no successful ci run for ${GITHUB_SHA}; refusing to release"
+            exit 1
+          fi
+          echo "ci is green on ${GITHUB_SHA}"
+
+  binaries:
+    name: binary (${{ matrix.asset }})
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: bun-linux-x64
+            asset: bunready-linux-x64
+          - os: macos-latest
+            target: bun-darwin-arm64
+            asset: bunready-darwin-arm64
+          - os: windows-latest
+            target: bun-windows-x64
+            asset: bunready-windows-x64.exe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile
+        run: bun build ./src/cli/index.ts --compile --target=${{ matrix.target }} --outfile dist/${{ matrix.asset }}
+
+      # A binary that does not run is not a release artifact.
+      - name: Smoke test the compiled binary
+        run: ./dist/${{ matrix.asset }} --version
+
+      - name: Upload the binary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: publish to npm with provenance
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The whole point: an OIDC token instead of a long-lived NPM_TOKEN.
+      # Requires trusted publishing to be configured for this package on
+      # npmjs.com first - see docs/RELEASING.md.
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # Deliberately no `registry-url`: this job authenticates through OIDC, and
+      # a generated .npmrc pointing at an unset token would fight that.
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      # Trusted publishing needs an npm recent enough to speak it; runner images
+      # ship an older one.
+      - name: Update npm
+        run: npm install --global npm@latest
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Publish
+        run: npm publish --provenance --access public
+
+  release:
+    name: attach artifacts to the release
+    needs: [binaries, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: latest
+
+      - name: Download the binaries
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate the SBOM
+        run: bun run scripts/generate-sbom.ts dist/bom.json
+
+      - name: Generate checksums
+        run: bun run scripts/checksums.ts dist/SHA256SUMS dist/bunready-linux-x64 dist/bunready-darwin-arm64 dist/bunready-windows-x64.exe
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: *** secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            dist/bunready-linux-x64 \
+            dist/bunready-darwin-arm64 \
+            dist/bunready-windows-x64.exe \
+            dist/SHA256SUMS \
+            dist/bom.json
