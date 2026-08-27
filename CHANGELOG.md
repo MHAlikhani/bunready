@@ -61,6 +61,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/dependabot.yml`: weekly updates for dev dependencies and for GitHub
   Actions, so the SHA pins stay current.
 - Live CI and security badges in the README.
+- Release pipeline (`.github/workflows/release.yml`): a `v*` tag asserts CI is
+  green on that exact commit, compiles and smoke-tests Linux, macOS and Windows
+  binaries, publishes to npm with provenance over OIDC, and attaches the
+  binaries, `SHA256SUMS` and a CycloneDX SBOM to the GitHub release.
+- `scripts/generate-sbom.ts` and `scripts/checksums.ts`, with the pure logic in
+  `scripts/lib/` so the artifact formats are tested rather than trusted.
+- `docs/RELEASING.md` (process and prerequisites) and
+  `docs/adr/0003-release-pipeline.md` (why OIDC, binaries and a tag gate).
 
 ### Changed
 
