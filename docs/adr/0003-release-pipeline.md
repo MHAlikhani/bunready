@@ -1,7 +1,7 @@
 # ADR 0003 - Release pipeline
 
 - **Status:** accepted
-- **Date:** 2026-08-26
+- **Date:** 2026-08-27
 - **Context:** bunready is a CLI that people will run on their own machines, so
   "trust the release" has to be something a stranger can verify, not a promise.
 
