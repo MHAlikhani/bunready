@@ -42,12 +42,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2",
-    "@commitlint/cli": "^20",
-    "@commitlint/config-conventional": "^20",
+    "@commitlint/cli": "^21",
+    "@commitlint/config-conventional": "^21",
     "@resvg/resvg-js": "^2",
     "@types/bun": "^1",
     "simple-git-hooks": "^2",
-    "typescript": "^5"
+    "typescript": "^7"
   },
   "simple-git-hooks": {
     "pre-commit": "bunx biome check --staged --no-errors-on-unmatched && bunx tsc --noEmit",
