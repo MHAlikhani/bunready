@@ -1,6 +1,10 @@
 version: 2
 
 updates:
+  # Bun's lockfile is not a format Dependabot can update, so an npm-ecosystem PR
+  # arrives with `package.json` changed and `bun.lock` stale. CI therefore fails
+  # on `--frozen-lockfile`, by design: check the branch out, run `bun install`,
+  # commit the regenerated `bun.lock`, and merge only then. See STATE.md (O9).
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -14,6 +18,9 @@ updates:
         patterns: ["*"]
         dependency-type: development
 
+  # Action bumps are grouped into one PR per action. Note that
+  # `github/codeql-action` ships two steps (init and analyze) that must move
+  # together: upgrading one without the other fails with a version mismatch.
   - package-ecosystem: github-actions
     directory: /
     schedule:
