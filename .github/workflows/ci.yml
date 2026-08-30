@@ -16,6 +16,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  workflows:
+    name: workflow yaml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # A workflow file with invalid YAML does not fail loudly: GitHub refuses to
+      # run it and the repository just looks quiet. That is exactly how a broken
+      # release.yml reached main, so parse them here instead.
+      - name: Parse every workflow file
+        run: |
+          set -euo pipefail
+          python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --break-system-packages pyyaml
+          python3 - <<'PY'
+          import glob
+          import yaml
+
+          for path in sorted(glob.glob(".github/workflows/*.yml")):
+              with open(path, encoding="utf-8") as handle:
+                  yaml.safe_load(handle)
+              print(f"ok: {path}")
+          PY
+
   test:
     name: test (${{ matrix.os }}, bun ${{ matrix.bun }})
     runs-on: ${{ matrix.os }}
