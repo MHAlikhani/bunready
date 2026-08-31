@@ -1,12 +1,20 @@
 import type { Result } from "../core/errors";
 import { type FileSystem, nodeFileSystem } from "../core/fs";
 import { TOOL_NAME, TOOL_VERSION } from "../core/version";
-import { type ScanReport, sortFindings, verdictFor } from "../report/types";
+import { type RunSummary, type ScanReport, sortFindings, verdictFor } from "../report/types";
 import { installFindings } from "../rules/install";
 import type { RuntimeInfo } from "../rules/install/engines";
-import { runtimeFindings } from "../rules/runtime";
 import { collectNodeBuiltins } from "../rules/runtime/builtins";
+import { runtimeFindings } from "../rules/runtime";
+import { runFindings } from "../rules/run";
 import { countBySeverity } from "../rules/severity";
+import {
+  DEFAULT_RUN_OPTIONS,
+  type RunEnvironment,
+  type RunOptions,
+  executeProject,
+  systemRunEnvironment,
+} from "./execute";
 import { buildGraph } from "./graph";
 import { scanSources } from "./sources";
 import { readTarget } from "./target";
@@ -19,20 +27,21 @@ export function detectRuntime(): RuntimeInfo {
 export interface ScanOptions {
   readonly fs?: FileSystem;
   readonly runtime?: RuntimeInfo;
+  /** Opt in to executing the target's code in a temporary copy. */
+  readonly run?: boolean;
+  readonly runEnvironment?: RunEnvironment;
+  readonly runOptions?: RunOptions;
 }
 
 /**
  * Scan one repository.
  *
- * Read-only by construction: this function opens package.json, the lockfiles,
- * installed dependency manifests and the repository's own source, and never
- * executes the target's code. Everything that could not be read ends up in the
- * report as a finding rather than being silently dropped.
+ * Read-only unless `run` is set: the default path opens package.json, the
+ * lockfiles, installed dependency manifests and the repository's own source, and
+ * never executes the target's code. Everything that could not be read ends up in
+ * the report as a finding rather than being silently dropped.
  */
-export async function scanTarget(
-  dir: string,
-  options: ScanOptions = {},
-): Promise<Result<ScanReport>> {
+export async function scanTarget(dir: string, options: ScanOptions = {}): Promise<Result<ScanReport>> {
   const fs = options.fs ?? nodeFileSystem();
   const runtime = options.runtime ?? detectRuntime();
 
@@ -46,10 +55,39 @@ export async function scanTarget(
   const sources = await scanSources(dir, fs);
   const usages = collectNodeBuiltins(sources);
 
-  const findings = sortFindings([
+  const staticFindings = [
     ...installFindings(snapshot, graph, runtime),
     ...runtimeFindings(sources, usages),
-  ]);
+  ];
+
+  let executedFindings: ReturnType<typeof runFindings> = [];
+  let runSummary: RunSummary | undefined;
+
+  if (options.run === true) {
+    const runOptions = options.runOptions ?? DEFAULT_RUN_OPTIONS;
+    const executed = await executeProject(
+      dir,
+      snapshot.manifest,
+      options.runEnvironment ?? systemRunEnvironment(),
+      runOptions,
+    );
+    if (!executed.ok) {
+      return { ok: false, error: executed.error };
+    }
+
+    const outcome = executed.value;
+    executedFindings = runFindings(outcome, runOptions);
+    runSummary = {
+      script: outcome.script,
+      installExitCode: outcome.install.code,
+      exitCode: outcome.result?.code ?? null,
+      timedOut: outcome.result?.timedOut ?? false,
+      durationMs: outcome.result?.durationMs,
+      firstFailure: outcome.failure?.message,
+    };
+  }
+
+  const findings = sortFindings([...staticFindings, ...executedFindings]);
   const counts = countBySeverity(findings.map((finding) => finding.severity));
 
   return {
@@ -70,6 +108,7 @@ export async function scanTarget(
         sourceFiles: sources.filesScanned,
         nodeBuiltins: usages.length,
       },
+      ...(runSummary === undefined ? {} : { run: runSummary }),
     },
   };
 }

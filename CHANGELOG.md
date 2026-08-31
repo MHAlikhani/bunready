@@ -69,21 +69,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `scripts/lib/` so the artifact formats are tested rather than trusted.
 - `docs/RELEASING.md` (process and prerequisites) and
   `docs/adr/0003-release-pipeline.md` (why OIDC, binaries and a tag gate).
-
-### Changed
-
-- A scan now produces a verdict and an exit code. The "scanner is not
-  implemented yet" branch is gone; `--run` is still unimplemented and says so on
-  stderr before scanning.
-- Paths in findings print with forward slashes, so output is identical on every
-  operating system.
+- `--run`: the target is copied to a temporary directory, dependencies are
+  installed there and its `start` (or `test`) script is booted with `bun run`.
+  The first real failure is captured with its stack frames. Nothing is executed
+  in place, every command is timed, and the copy is removed even when the run
+  fails.
 
 ### Fixed
 
+- `.github/workflows/release.yml` was invalid YAML: a secrets expression had been
+  written as a literal `*` alias, and GitHub does not fail loudly for that - it
+  simply refuses to run the workflow. `ci.yml` now parses every workflow file on
+  each pull request so the class of break cannot reach `main` again.
+- `actions/checkout` to v7, `gitleaks/gitleaks-action` to v3, `github/codeql-action`
+  init and analyze to v4 (they must move together), `@commitlint/*` to 21 and
+  TypeScript to 7, with a regenerated lockfile.
 - `engines.bun` now declares `>=1.4.0`. The previous `>=1.2.0` claim was wrong:
   the committed `bun.lock` is text lockfile format version 2, which Bun 1.2 and
   1.3 reject with an unknown-lockfile-version error. The CI matrix caught it on
   its first run.
+
+### Changed
+
+- A scan now produces a verdict and an exit code.
+- `--run` executes the target's own script in a temporary copy instead of
+  reporting itself as unimplemented.
+- Paths in findings print with forward slashes, so output is identical on every
+  operating system.
 
 ### Notes
 
@@ -91,7 +103,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   entry would assert that a specific Node built-in is partial or missing in Bun,
   and that claim needs a primary source. Until then the rule reports what the
   repository imports and cites the compatibility table.
-- `--run` (executing the target's own scripts under Bun) is not implemented yet;
-  the flag says so before scanning.
 
 [Unreleased]: https://github.com/MHAlikhani/bunready/commits/main

@@ -14,9 +14,9 @@ export const POSITIONING = "Know what breaks before you move a Node/TS repo to B
 
 export const TAGLINE = "One command. One honest verdict.";
 
-/** `--run` is planned, not built. Say so rather than scan silently and imply more. */
-export const RUN_NOT_IMPLEMENTED =
-  "--run is not implemented yet: this scan reads the repository and never executes the target's code";
+/** `--run` executes the target's code, so the help text has to say so plainly. */
+export const RUN_WARNING =
+  "--run executes the target's code in a temporary copy; nothing runs in place and every command is timed";
 
 export function helpText(version: string): string {
   return [
@@ -33,8 +33,9 @@ export function helpText(version: string): string {
     "  -h, --help      Print this help and exit.",
     "  -v, --version   Print the version and exit.",
     "      --json      Emit a machine-readable report on stdout.",
-    "      --run       Planned: exercise the target's own scripts under Bun in a",
-    "                  temporary copy. Not implemented yet.",
+    "      --run       Copy the repository to a temporary directory, install it and",
+    "                  run its start (or test) script under Bun, reporting the first",
+    "                  real failure. Executes code; off by default.",
     "",
     "EXIT CODES",
     "  0   No blockers found.",

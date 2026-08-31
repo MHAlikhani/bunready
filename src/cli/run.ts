@@ -5,7 +5,7 @@ import { renderJsonReport } from "../report/json";
 import { exitCodeForSeverities } from "../rules/severity";
 import { scanTarget } from "../scanner/scan";
 import { parseArgs } from "./args";
-import { helpText, RUN_NOT_IMPLEMENTED, TOOL } from "./copy";
+import { helpText, RUN_WARNING, TOOL } from "./copy";
 import { type Io, systemIo } from "./io";
 import { colorEnabled, createTheme } from "./theme";
 
@@ -45,10 +45,10 @@ export async function run(argv: readonly string[], io: Io = systemIo()): Promise
   }
 
   if (options.run) {
-    io.err(`${theme.yellow("!")} ${RUN_NOT_IMPLEMENTED}`);
+    io.err(`${theme.dim("!")} ${RUN_WARNING}`);
   }
 
-  const scan = await scanTarget(options.target);
+  const scan = await scanTarget(options.target, { run: options.run });
   if (!scan.ok) {
     io.err(`${theme.red("error")} ${formatError(scan.error)}`);
     return EXIT_USAGE;

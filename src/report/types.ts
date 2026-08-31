@@ -22,6 +22,16 @@ export interface Finding {
 
 export type Verdict = "ready" | "risky" | "blocked";
 
+/** What `--run` actually did, so a run result can be read without the log. */
+export interface RunSummary {
+  readonly script: string | undefined;
+  readonly installExitCode: number | null;
+  readonly exitCode: number | null;
+  readonly timedOut: boolean;
+  readonly durationMs: number | undefined;
+  readonly firstFailure: string | undefined;
+}
+
 /** What the scan looked at, so a verdict can be read in proportion. */
 export interface ScanStats {
   readonly directDependencies: number;
@@ -42,6 +52,7 @@ export interface ScanReport {
   readonly counts: Readonly<Record<Severity, number>>;
   readonly findings: readonly Finding[];
   readonly stats?: ScanStats;
+  readonly run?: RunSummary;
 }
 
 /** Blockers first, then risks, then info; stable within a severity. */

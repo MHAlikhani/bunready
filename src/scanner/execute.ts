@@ -1,0 +1,255 @@
+import { cp, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { basename, join } from "node:path";
+import { ok, type Result } from "../core/errors";
+import type { Manifest } from "./manifest";
+
+/**
+ * `--run`: the only part of bunready that executes the target's code.
+ *
+ * Safety rules, all enforced here:
+ *  - the target is always copied to a temporary directory and executed there,
+ *    never in place;
+ *  - VCS data, installed dependencies and build output are not copied, so the
+ *    run starts from a clean checkout;
+ *  - every command has a timeout, and the temporary directory is removed even
+ *    when the run fails.
+ *
+ * There is no network sandbox: `bun install` will reach the registry the same
+ * way it would for the user. That is stated in the report, not hidden.
+ */
+
+export const COPY_EXCLUDES = [
+  ".git",
+  "node_modules",
+  "dist",
+  "coverage",
+  ".next",
+  ".turbo",
+  ".cache",
+] as const;
+
+/** Tried in order; whichever exists in package.json is what gets booted. */
+export const RUNNABLE_SCRIPTS = ["start", "test"] as const;
+
+export interface ProcessResult {
+  readonly code: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly timedOut: boolean;
+  readonly durationMs: number;
+}
+
+export interface RunCommandOptions {
+  readonly cwd: string;
+  readonly timeoutMs: number;
+}
+
+/** Seam so the executor can be tested without spawning anything. */
+export interface CommandRunner {
+  readonly run: (command: readonly string[], options: RunCommandOptions) => Promise<ProcessResult>;
+}
+
+export interface RunEnvironment {
+  readonly runner: CommandRunner;
+  readonly makeTempDir: () => Promise<string>;
+  readonly copyProject: (from: string, to: string) => Promise<void>;
+  readonly removeDir: (path: string) => Promise<void>;
+}
+
+export interface RunFailure {
+  readonly message: string;
+  readonly frames: readonly string[];
+}
+
+export interface RunOutcome {
+  readonly workDir: string;
+  readonly script: string | undefined;
+  readonly install: ProcessResult;
+  readonly installFailed: boolean;
+  readonly result: ProcessResult | undefined;
+  readonly failure: RunFailure | undefined;
+  readonly cleanupFailed: boolean;
+}
+
+export interface RunOptions {
+  readonly installTimeoutMs: number;
+  readonly scriptTimeoutMs: number;
+}
+
+export const DEFAULT_RUN_OPTIONS: RunOptions = {
+  installTimeoutMs: 180_000,
+  scriptTimeoutMs: 120_000,
+};
+
+const STACK_FRAME = /^\s+at\s+\S/;
+const ERROR_HINT = /(\berror\b|\bError\b|\bfailed\b|\bFAIL\b|✖|✗|×)/;
+const MAX_FRAMES = 5;
+
+/**
+ * The first thing a human would look for: the message above the first stack
+ * frame, plus a few frames. Pure, so the "what went wrong" logic is tested
+ * against real captured output instead of trusted.
+ */
+export function firstFailure(output: string): RunFailure | undefined {
+  const lines = output.split(/\r?\n/).map((line) => line.trimEnd());
+
+  const stackStart = lines.findIndex((line) => STACK_FRAME.test(line));
+  if (stackStart !== -1) {
+    const frames: string[] = [];
+    for (let index = stackStart; index < lines.length && frames.length < MAX_FRAMES; index += 1) {
+      const line = lines[index] ?? "";
+      if (!STACK_FRAME.test(line)) {
+        break;
+      }
+      frames.push(line.trim());
+    }
+
+    for (let index = stackStart - 1; index >= 0; index -= 1) {
+      const candidate = (lines[index] ?? "").trim();
+      if (candidate !== "") {
+        return { message: candidate, frames };
+      }
+    }
+    return { message: frames[0] ?? "process failed", frames };
+  }
+
+  const hinted = lines.findIndex((line) => line.trim() !== "" && ERROR_HINT.test(line));
+  if (hinted === -1) {
+    return undefined;
+  }
+  return { message: (lines[hinted] ?? "").trim(), frames: [] };
+}
+
+export function pickScript(manifest: Manifest): string | undefined {
+  return RUNNABLE_SCRIPTS.find((name) => typeof manifest.scripts[name] === "string");
+}
+
+export function isExcludedFromCopy(path: string): boolean {
+  return (COPY_EXCLUDES as readonly string[]).includes(basename(path));
+}
+
+export function bunCommandRunner(): CommandRunner {
+  return {
+    run: async (command, options) => {
+      const started = Date.now();
+      const process = Bun.spawn([...command], {
+        cwd: options.cwd,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...Bun.env, CI: "1" },
+      });
+
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        process.kill();
+      }, options.timeoutMs);
+
+      try {
+        const [stdout, stderr] = await Promise.all([
+          new Response(process.stdout).text(),
+          new Response(process.stderr).text(),
+        ]);
+        const code = await process.exited;
+        return { code, stdout, stderr, timedOut, durationMs: Date.now() - started };
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+  };
+}
+
+export function systemRunEnvironment(): RunEnvironment {
+  return {
+    runner: bunCommandRunner(),
+    makeTempDir: () => mkdtemp(join(tmpdir(), "bunready-run-")),
+    copyProject: async (from, to) => {
+      await cp(from, to, { recursive: true, filter: (source) => !isExcludedFromCopy(source) });
+    },
+    removeDir: (path) => rm(path, { recursive: true, force: true }),
+  };
+}
+
+async function perform(
+  workDir: string,
+  dir: string,
+  manifest: Manifest,
+  env: RunEnvironment,
+  options: RunOptions,
+) {
+  await env.copyProject(dir, workDir);
+
+  const install = await env.runner.run(["bun", "install"], {
+    cwd: workDir,
+    timeoutMs: options.installTimeoutMs,
+  });
+
+  if (install.timedOut || install.code !== 0) {
+    return {
+      script: undefined,
+      install,
+      installFailed: true,
+      result: undefined,
+      failure: firstFailure(`${install.stdout}\n${install.stderr}`),
+    };
+  }
+
+  const script = pickScript(manifest);
+  if (script === undefined) {
+    return {
+      script: undefined,
+      install,
+      installFailed: false,
+      result: undefined,
+      failure: undefined,
+    };
+  }
+
+  const result = await env.runner.run(["bun", "run", script], {
+    cwd: workDir,
+    timeoutMs: options.scriptTimeoutMs,
+  });
+
+  return {
+    script,
+    install,
+    installFailed: false,
+    result,
+    failure: firstFailure(`${result.stdout}\n${result.stderr}`),
+  };
+}
+
+export async function executeProject(
+  dir: string,
+  manifest: Manifest,
+  env: RunEnvironment = systemRunEnvironment(),
+  options: RunOptions = DEFAULT_RUN_OPTIONS,
+): Promise<Result<RunOutcome>> {
+  const workDir = await env.makeTempDir();
+
+  let partial: Omit<RunOutcome, "workDir" | "cleanupFailed">;
+  try {
+    partial = await perform(workDir, dir, manifest, env, options);
+  } catch (error) {
+    // Never leak the temporary directory, even if the copy itself failed.
+    await env.removeDir(workDir).catch(() => undefined);
+    return {
+      ok: false,
+      error: {
+        code: "E_IO",
+        message: `could not prepare the temporary copy: ${error instanceof Error ? error.message : String(error)}`,
+        hint: "check that the target directory is readable and that the temporary directory is writable.",
+      },
+    };
+  }
+
+  let cleanupFailed = false;
+  try {
+    await env.removeDir(workDir);
+  } catch {
+    cleanupFailed = true;
+  }
+
+  return ok({ ...partial, workDir, cleanupFailed });
+}
