@@ -97,16 +97,19 @@ describe("run", () => {
   });
 
   test("--run executes in a temporary copy and reports what it found", async () => {
-    await withFixture({ "package.json": JSON.stringify({ name: "run-app", private: true }) }, async (dir) => {
-      const { io, out, err } = capture();
-      const code = await run([dir, "--run"], io);
+    await withFixture(
+      { "package.json": JSON.stringify({ name: "run-app", private: true }) },
+      async (dir) => {
+        const { io, out, err } = capture();
+        const code = await run([dir, "--run"], io);
 
-      // No dependencies and no scripts: the copy installs, finds nothing to run,
-      // and says so instead of inventing a result.
-      expect(code).toBe(0);
-      expect(err.join("\n")).toContain("executes the target's code");
-      expect(out.join("\n")).toContain("no start or test script");
-    });
+        // No dependencies and no scripts: the copy installs, finds nothing to run,
+        // and says so instead of inventing a result.
+        expect(code).toBe(0);
+        expect(err.join("\n")).toContain("executes the target's code");
+        expect(out.join("\n")).toContain("no start or test script");
+      },
+    );
   }, 60_000);
 
   test("a directory without a package.json exits 2 with E_IO", async () => {

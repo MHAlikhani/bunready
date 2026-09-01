@@ -4,15 +4,15 @@ import { TOOL_NAME, TOOL_VERSION } from "../core/version";
 import { type RunSummary, type ScanReport, sortFindings, verdictFor } from "../report/types";
 import { installFindings } from "../rules/install";
 import type { RuntimeInfo } from "../rules/install/engines";
-import { collectNodeBuiltins } from "../rules/runtime/builtins";
-import { runtimeFindings } from "../rules/runtime";
 import { runFindings } from "../rules/run";
+import { runtimeFindings } from "../rules/runtime";
+import { collectNodeBuiltins } from "../rules/runtime/builtins";
 import { countBySeverity } from "../rules/severity";
 import {
   DEFAULT_RUN_OPTIONS,
+  executeProject,
   type RunEnvironment,
   type RunOptions,
-  executeProject,
   systemRunEnvironment,
 } from "./execute";
 import { buildGraph } from "./graph";
@@ -41,7 +41,10 @@ export interface ScanOptions {
  * never executes the target's code. Everything that could not be read ends up in
  * the report as a finding rather than being silently dropped.
  */
-export async function scanTarget(dir: string, options: ScanOptions = {}): Promise<Result<ScanReport>> {
+export async function scanTarget(
+  dir: string,
+  options: ScanOptions = {},
+): Promise<Result<ScanReport>> {
   const fs = options.fs ?? nodeFileSystem();
   const runtime = options.runtime ?? detectRuntime();
 
