@@ -36,3 +36,11 @@ export function countBySeverity(
 export function exitCodeForSeverities(severities: readonly Severity[]): number {
   return severities.includes("blocker") ? 1 : 0;
 }
+
+/** Exit code for a set of findings, honouring a configured `failOn` threshold. */
+export function exitCodeForFindings(
+  findings: readonly { readonly severity: Severity }[],
+  failOn: Severity,
+): number {
+  return findings.some((finding) => compareSeverity(finding.severity, failOn) <= 0) ? 1 : 0;
+}

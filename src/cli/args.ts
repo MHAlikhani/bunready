@@ -1,13 +1,16 @@
 import { defineError, err, ok, type Result } from "../core/errors";
 
-/** Everything the CLI understands after this phase. */
+/** Everything the CLI understands. */
 export interface CliOptions {
   /** Repository to scan; `.` unless the user passed a path. */
   readonly target: string;
   readonly help: boolean;
   readonly version: boolean;
   readonly json: boolean;
+  readonly sarif: boolean;
   readonly run: boolean;
+  readonly runScript: string | undefined;
+  readonly config: string | undefined;
 }
 
 export const DEFAULT_TARGET = ".";
@@ -24,10 +27,27 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
   let help = false;
   let version = false;
   let json = false;
+  let sarif = false;
   let run = false;
+  let runScript: string | undefined;
+  let config: string | undefined;
   let positionalOnly = false;
 
-  for (const arg of argv) {
+  const valueFor = (flag: string, index: number): Result<string> => {
+    const value = argv[index + 1];
+    if (value === undefined || value === "") {
+      return err(
+        defineError("E_USAGE", `${flag} needs a value`, {
+          hint: `write it as ${flag} <value>.`,
+        }),
+      );
+    }
+    return ok(value);
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index] ?? "";
+
     if (positionalOnly) {
       if (target !== undefined) {
         return err(
@@ -55,9 +75,31 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
       case "--json":
         json = true;
         break;
+      case "--sarif":
+        sarif = true;
+        break;
       case "--run":
         run = true;
         break;
+      case "--run-script": {
+        const value = valueFor(arg, index);
+        if (!value.ok) {
+          return value;
+        }
+        runScript = value.value;
+        run = true;
+        index += 1;
+        break;
+      }
+      case "--config": {
+        const value = valueFor(arg, index);
+        if (!value.ok) {
+          return value;
+        }
+        config = value.value;
+        index += 1;
+        break;
+      }
       default:
         if (arg.startsWith("-") && arg !== "-") {
           return err(
@@ -78,5 +120,22 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
     }
   }
 
-  return ok({ target: target ?? DEFAULT_TARGET, help, version, json, run });
+  if (json && sarif) {
+    return err(
+      defineError("E_USAGE", "--json and --sarif both write a machine-readable report to stdout", {
+        hint: "choose one of them.",
+      }),
+    );
+  }
+
+  return ok({
+    target: target ?? DEFAULT_TARGET,
+    help,
+    version,
+    json,
+    sarif,
+    run,
+    runScript,
+    config,
+  });
 }

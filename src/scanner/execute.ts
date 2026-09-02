@@ -1,4 +1,4 @@
-import { cp, mkdtemp, rm } from "node:fs/promises";
+import { cp, mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { ok, type Result } from "../core/errors";
@@ -7,16 +7,10 @@ import type { Manifest } from "./manifest";
 /**
  * `--run`: the only part of bunready that executes the target's code.
  *
- * Safety rules, all enforced here:
- *  - the target is always copied to a temporary directory and executed there,
- *    never in place;
- *  - VCS data, installed dependencies and build output are not copied, so the
- *    run starts from a clean checkout;
- *  - every command has a timeout, and the temporary directory is removed even
- *    when the run fails.
- *
- * There is no network sandbox: `bun install` will reach the registry the same
- * way it would for the user. That is stated in the report, not hidden.
+ * Safety rules, all enforced here: always a temporary copy and never in place;
+ * VCS data, dependencies and build output are not copied; a size cap is checked
+ * before copying; every command is timed; the copy is removed even on failure.
+ * There is no network sandbox, and the report says so.
  */
 
 export const COPY_EXCLUDES = [
@@ -29,7 +23,6 @@ export const COPY_EXCLUDES = [
   ".cache",
 ] as const;
 
-/** Tried in order; whichever exists in package.json is what gets booted. */
 export const RUNNABLE_SCRIPTS = ["start", "test"] as const;
 
 export interface ProcessResult {
@@ -45,7 +38,6 @@ export interface RunCommandOptions {
   readonly timeoutMs: number;
 }
 
-/** Seam so the executor can be tested without spawning anything. */
 export interface CommandRunner {
   readonly run: (command: readonly string[], options: RunCommandOptions) => Promise<ProcessResult>;
 }
@@ -55,6 +47,7 @@ export interface RunEnvironment {
   readonly makeTempDir: () => Promise<string>;
   readonly copyProject: (from: string, to: string) => Promise<void>;
   readonly removeDir: (path: string) => Promise<void>;
+  readonly measureTreeBytes: (path: string) => Promise<number>;
 }
 
 export interface RunFailure {
@@ -65,32 +58,34 @@ export interface RunFailure {
 export interface RunOutcome {
   readonly workDir: string;
   readonly script: string | undefined;
-  readonly install: ProcessResult;
+  readonly install: ProcessResult | undefined;
   readonly installFailed: boolean;
   readonly result: ProcessResult | undefined;
   readonly failure: RunFailure | undefined;
   readonly cleanupFailed: boolean;
+  readonly measuredBytes: number;
+  readonly copyTooLarge: boolean;
 }
 
 export interface RunOptions {
   readonly installTimeoutMs: number;
   readonly scriptTimeoutMs: number;
+  readonly maxCopyMegabytes: number;
+  /** Explicit script name; defaults to the first of start/test that exists. */
+  readonly script?: string;
 }
 
 export const DEFAULT_RUN_OPTIONS: RunOptions = {
   installTimeoutMs: 180_000,
   scriptTimeoutMs: 120_000,
+  maxCopyMegabytes: 250,
 };
 
 const STACK_FRAME = /^\s+at\s+\S/;
 const ERROR_HINT = /(\berror\b|\bError\b|\bfailed\b|\bFAIL\b|✖|✗|×)/;
 const MAX_FRAMES = 5;
 
-/**
- * The first thing a human would look for: the message above the first stack
- * frame, plus a few frames. Pure, so the "what went wrong" logic is tested
- * against real captured output instead of trusted.
- */
+/** The message above the first stack frame, plus a few frames. */
 export function firstFailure(output: string): RunFailure | undefined {
   const lines = output.split(/\r?\n/).map((line) => line.trimEnd());
 
@@ -121,7 +116,10 @@ export function firstFailure(output: string): RunFailure | undefined {
   return { message: (lines[hinted] ?? "").trim(), frames: [] };
 }
 
-export function pickScript(manifest: Manifest): string | undefined {
+export function pickScript(manifest: Manifest, requested?: string): string | undefined {
+  if (requested !== undefined) {
+    return typeof manifest.scripts[requested] === "string" ? requested : undefined;
+  }
   return RUNNABLE_SCRIPTS.find((name) => typeof manifest.scripts[name] === "string");
 }
 
@@ -133,7 +131,7 @@ export function bunCommandRunner(): CommandRunner {
   return {
     run: async (command, options) => {
       const started = Date.now();
-      const process = Bun.spawn([...command], {
+      const child = Bun.spawn([...command], {
         cwd: options.cwd,
         stdout: "pipe",
         stderr: "pipe",
@@ -143,21 +141,52 @@ export function bunCommandRunner(): CommandRunner {
       let timedOut = false;
       const timer = setTimeout(() => {
         timedOut = true;
-        process.kill();
+        child.kill();
       }, options.timeoutMs);
 
       try {
         const [stdout, stderr] = await Promise.all([
-          new Response(process.stdout).text(),
-          new Response(process.stderr).text(),
+          new Response(child.stdout).text(),
+          new Response(child.stderr).text(),
         ]);
-        const code = await process.exited;
+        const code = await child.exited;
         return { code, stdout, stderr, timedOut, durationMs: Date.now() - started };
       } finally {
         clearTimeout(timer);
       }
     },
   };
+}
+
+async function treeBytes(path: string): Promise<number> {
+  let total = 0;
+  let entries: { name: string; isDirectory: () => boolean }[];
+  try {
+    entries = (await readdir(path, { withFileTypes: true })) as unknown as {
+      name: string;
+      isDirectory: () => boolean;
+    }[];
+  } catch {
+    return 0;
+  }
+
+  for (const entry of entries) {
+    const name = String(entry.name);
+    if (isExcludedFromCopy(name)) {
+      continue;
+    }
+    const child = join(path, name);
+    if (entry.isDirectory()) {
+      total += await treeBytes(child);
+      continue;
+    }
+    try {
+      total += (await stat(child)).size;
+    } catch {
+      // An unreadable file simply does not contribute.
+    }
+  }
+  return total;
 }
 
 export function systemRunEnvironment(): RunEnvironment {
@@ -168,6 +197,7 @@ export function systemRunEnvironment(): RunEnvironment {
       await cp(from, to, { recursive: true, filter: (source) => !isExcludedFromCopy(source) });
     },
     removeDir: (path) => rm(path, { recursive: true, force: true }),
+    measureTreeBytes: treeBytes,
   };
 }
 
@@ -177,7 +207,7 @@ async function perform(
   manifest: Manifest,
   env: RunEnvironment,
   options: RunOptions,
-) {
+): Promise<Omit<RunOutcome, "workDir" | "cleanupFailed" | "measuredBytes" | "copyTooLarge">> {
   await env.copyProject(dir, workDir);
 
   const install = await env.runner.run(["bun", "install"], {
@@ -195,7 +225,7 @@ async function perform(
     };
   }
 
-  const script = pickScript(manifest);
+  const script = pickScript(manifest, options.script);
   if (script === undefined) {
     return {
       script: undefined,
@@ -226,13 +256,29 @@ export async function executeProject(
   env: RunEnvironment = systemRunEnvironment(),
   options: RunOptions = DEFAULT_RUN_OPTIONS,
 ): Promise<Result<RunOutcome>> {
+  const measuredBytes = await env.measureTreeBytes(dir);
+  const limitBytes = options.maxCopyMegabytes * 1024 * 1024;
+
+  if (measuredBytes > limitBytes) {
+    return ok({
+      workDir: "",
+      script: undefined,
+      install: undefined,
+      installFailed: false,
+      result: undefined,
+      failure: undefined,
+      cleanupFailed: false,
+      measuredBytes,
+      copyTooLarge: true,
+    });
+  }
+
   const workDir = await env.makeTempDir();
 
-  let partial: Omit<RunOutcome, "workDir" | "cleanupFailed">;
+  let partial: Awaited<ReturnType<typeof perform>>;
   try {
     partial = await perform(workDir, dir, manifest, env, options);
   } catch (error) {
-    // Never leak the temporary directory, even if the copy itself failed.
     await env.removeDir(workDir).catch(() => undefined);
     return {
       ok: false,
@@ -251,5 +297,5 @@ export async function executeProject(
     cleanupFailed = true;
   }
 
-  return ok({ ...partial, workDir, cleanupFailed });
+  return ok({ ...partial, workDir, cleanupFailed, measuredBytes, copyTooLarge: false });
 }

@@ -64,9 +64,10 @@ export function nativeAddonFindings(
   const findings = new Map<string, Finding>();
   const known = knownPackageNames(graph, lockfile);
   const direct = new Set([...graph.direct, ...graph.dev, ...graph.optional]);
+  const allowed = new Set(snapshot.config.nativeAllowlist);
 
   for (const entry of readDataset()) {
-    if (!known.has(entry.name)) {
+    if (!known.has(entry.name) || allowed.has(entry.name)) {
       continue;
     }
     findings.set(entry.name, {
@@ -74,6 +75,7 @@ export function nativeAddonFindings(
       severity: "risk",
       title: `${entry.name} ships a native addon`,
       detail: entry.reason,
+      package: entry.name,
       evidence: direct.has(entry.name) ? "declared in package.json" : "present in the lockfile",
       source: entry.source,
       hint: "check that a prebuilt binary exists for your platform, otherwise this one needs a working C/C++ toolchain.",
@@ -90,12 +92,16 @@ export function nativeAddonFindings(
       title: `${evidence.name} builds a native addon on install`,
       detail:
         "The installed copy of this package sets `gypfile`, so it compiles a native addon rather than shipping one.",
+      package: evidence.name,
       evidence: `${evidence.path} sets "gypfile": true`,
       hint: "this needs a C/C++ toolchain and a Python interpreter available at install time.",
     });
   }
 
   const declaredTools = BUILD_TOOL_PACKAGES.filter((tool) => {
+    if (allowed.has(tool)) {
+      return false;
+    }
     if (direct.has(tool)) {
       return true;
     }

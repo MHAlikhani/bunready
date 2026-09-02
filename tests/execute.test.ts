@@ -26,7 +26,7 @@ interface Harness {
 function harness(
   scriptResult: ProcessResult,
   installResult: ProcessResult = processResult(),
-  options: { copyThrows?: boolean; removeThrows?: boolean } = {},
+  options: { copyThrows?: boolean; removeThrows?: boolean; measuredBytes?: number } = {},
 ): Harness {
   const calls: { command: readonly string[]; cwd: string }[] = [];
   const removed: string[] = [];
@@ -58,6 +58,7 @@ function harness(
         }
         removed.push(path);
       },
+      measureTreeBytes: async () => options.measuredBytes ?? 0,
     },
   };
 }
@@ -126,7 +127,11 @@ describe("isExcludedFromCopy", () => {
 });
 
 describe("executeProject", () => {
-  const options: RunOptions = { installTimeoutMs: 1000, scriptTimeoutMs: 1000 };
+  const options: RunOptions = {
+    installTimeoutMs: 1000,
+    scriptTimeoutMs: 1000,
+    maxCopyMegabytes: 1,
+  };
 
   test("installs and runs the script in the temporary copy", async () => {
     const h = harness(processResult({ code: 0, stdout: "done" }));
@@ -172,6 +177,20 @@ describe("executeProject", () => {
     expect(h.removed).toEqual(["/tmp/bunready-run-abc"]);
   });
 
+  test("refuses to copy a repository larger than the configured limit", async () => {
+    const h = harness(processResult(), processResult(), { measuredBytes: 2 * 1024 * 1024 });
+    const result = await executeProject("/work/app", MANIFEST_WITH_TEST, h.env, options);
+
+    expect(result.ok && result.value.copyTooLarge).toBe(true);
+    expect(h.calls).toHaveLength(0);
+    expect(h.copied).toHaveLength(0);
+
+    const findings = result.ok ? runFindings(result.value, options) : [];
+    expect(findings[0]?.id).toBe("run/copy-too-large");
+    expect(findings[0]?.severity).toBe("risk");
+    expect(findings[0]?.evidence).toContain("2 MB");
+  });
+
   test("reports a cleanup failure instead of swallowing it", async () => {
     const h = harness(processResult(), processResult(), { removeThrows: true });
     const result = await executeProject("/work/app", MANIFEST_WITH_TEST, h.env, options);
@@ -187,6 +206,8 @@ describe("runFindings", () => {
     installFailed: false,
     cleanupFailed: false,
     failure: undefined,
+    measuredBytes: 1024,
+    copyTooLarge: false,
   };
 
   test("a green script is info, not a blocker", () => {

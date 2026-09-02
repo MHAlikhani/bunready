@@ -1,5 +1,8 @@
 import { compareSeverity, type Severity } from "../rules/severity";
 
+/** The `--json` contract version. Bumped only for a breaking field change. */
+export const SCHEMA_VERSION = 1;
+
 /**
  * A single thing bunready can say about a target repo.
  *
@@ -13,6 +16,8 @@ export interface Finding {
   readonly severity: Severity;
   readonly title: string;
   readonly detail: string;
+  /** The dependency this finding is about, when there is one. */
+  readonly package?: string;
   /** Observed proof from the scanned repo, e.g. the offending dependency. */
   readonly evidence?: string;
   /** Link to the Bun doc or issue backing the compatibility claim. */
@@ -45,6 +50,10 @@ export interface ScanStats {
 
 /** The machine-readable shape emitted by `--json`. */
 export interface ScanReport {
+  /** Bumped when a field is renamed or removed. CI can pin on it. */
+  readonly schemaVersion: number;
+  /** Lowest severity that makes this report fail; the exit code follows it. */
+  readonly failOn: Severity;
   readonly tool: string;
   readonly version: string;
   readonly target: string;

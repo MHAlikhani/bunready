@@ -33,9 +33,13 @@ export function helpText(version: string): string {
     "  -h, --help      Print this help and exit.",
     "  -v, --version   Print the version and exit.",
     "      --json      Emit a machine-readable report on stdout.",
+    "      --sarif     Emit SARIF 2.1.0 on stdout, for code-scanning upload.",
     "      --run       Copy the repository to a temporary directory, install it and",
     "                  run its start (or test) script under Bun, reporting the first",
     "                  real failure. Executes code; off by default.",
+    "",
+    "      --config    Path to a bunready.config.json. Defaults to the file in the",
+    "                  scanned repository, if any.",
     "",
     "EXIT CODES",
     "  0   No blockers found.",
@@ -48,6 +52,11 @@ export function helpText(version: string): string {
     "Compatibility claims come only from public Bun documentation and issue",
     "tracker entries, each shipped with a source link. bunready never invents",
     "compatibility facts. Not affiliated with the Bun project or Oven.",
+    "",
+    "CONFIGURATION",
+    "  bunready.config.json in the scanned repository can ignore rule ids or",
+    "  packages, allowlist native addons, exclude paths and raise or lower",
+    "  failOn. See docs/CONFIGURATION.md.",
   ].join("\n");
 }
 

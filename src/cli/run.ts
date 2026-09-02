@@ -2,7 +2,8 @@ import { formatError } from "../core/errors";
 import { TOOL_VERSION } from "../core/version";
 import { renderHumanReport } from "../report/human";
 import { renderJsonReport } from "../report/json";
-import { exitCodeForSeverities } from "../rules/severity";
+import { renderSarifReport } from "../report/sarif";
+import { exitCodeForFindings } from "../rules/severity";
 import { scanTarget } from "../scanner/scan";
 import { parseArgs } from "./args";
 import { helpText, RUN_WARNING, TOOL } from "./copy";
@@ -48,15 +49,25 @@ export async function run(argv: readonly string[], io: Io = systemIo()): Promise
     io.err(`${theme.dim("!")} ${RUN_WARNING}`);
   }
 
-  const scan = await scanTarget(options.target, { run: options.run });
+  const scan = await scanTarget(options.target, {
+    run: options.run,
+    ...(options.runScript === undefined ? {} : { runScript: options.runScript }),
+    ...(options.config === undefined ? {} : { configPath: options.config }),
+  });
+
   if (!scan.ok) {
     io.err(`${theme.red("error")} ${formatError(scan.error)}`);
     return EXIT_USAGE;
   }
 
   const report = scan.value;
-  io.out(options.json ? renderJsonReport(report) : renderHumanReport(report, theme));
+  if (options.json) {
+    io.out(renderJsonReport(report));
+  } else if (options.sarif) {
+    io.out(renderSarifReport(report));
+  } else {
+    io.out(renderHumanReport(report, theme));
+  }
 
-  const exitCode = exitCodeForSeverities(report.findings.map((finding) => finding.severity));
-  return exitCode === 0 ? EXIT_OK : EXIT_BLOCKERS;
+  return exitCodeForFindings(report.findings, report.failOn) === 0 ? EXIT_OK : EXIT_BLOCKERS;
 }

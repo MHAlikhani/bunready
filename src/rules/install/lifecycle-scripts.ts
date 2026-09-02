@@ -49,6 +49,7 @@ export function lifecycleScriptFindings(
           id: ID,
           severity: "info" as const,
           title: `${name} runs an install script and is trusted`,
+          package: name,
           detail:
             "Bun will run this package's install script because it is listed in trustedDependencies.",
           evidence: where,
@@ -58,6 +59,7 @@ export function lifecycleScriptFindings(
         id: ID,
         severity: "blocker" as const,
         title: `${name} installs nothing: its install script will not run`,
+        package: name,
         detail:
           "Bun installs dependencies without running their lifecycle scripts unless the package is listed in trustedDependencies. If this package builds a native addon or downloads a binary during install, that step is skipped.",
         evidence: where,

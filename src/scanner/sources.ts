@@ -294,6 +294,8 @@ function hasSourceExtension(name: string): boolean {
 
 export interface ScanSourcesOptions {
   readonly maxFiles?: number;
+  /** Substrings matched against each file path; a match skips the file. */
+  readonly excludePaths?: readonly string[];
 }
 
 /**
@@ -306,6 +308,7 @@ export async function scanSources(
   options: ScanSourcesOptions = {},
 ): Promise<SourceScan> {
   const maxFiles = options.maxFiles ?? MAX_SOURCE_FILES;
+  const excludePaths = options.excludePaths ?? [];
   const ignored = new Set<string>(IGNORED_DIRECTORIES);
   const queue: string[] = [dir];
   const files: SourceFile[] = [];
@@ -332,7 +335,10 @@ export async function scanSources(
         truncated = true;
         continue;
       }
-      const path = join(current, entry.name);
+      const path = join(current, entry.name).replace(/\\/g, "/");
+      if (excludePaths.some((fragment) => path.includes(fragment))) {
+        continue;
+      }
       const outcome = await fs.readTextFile(path);
       if (outcome.kind !== "text") {
         continue;

@@ -1,4 +1,10 @@
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
+import {
+  type BunreadyConfig,
+  CONFIG_FILENAME,
+  DEFAULT_CONFIG,
+  parseConfig,
+} from "../config/config";
 import { defineError, type Result } from "../core/errors";
 import { type FileSystem, nodeFileSystem } from "../core/fs";
 import {
@@ -42,6 +48,8 @@ export interface TargetSnapshot {
   /** Path to a legacy binary `bun.lockb`, whose contents bunready will not guess at. */
   readonly binaryBunLock: string | undefined;
   readonly packageEvidence: readonly PackageEvidence[];
+  readonly config: BunreadyConfig;
+  readonly configPath: string | undefined;
 }
 
 const INSTALL_SCRIPT_NAMES = ["preinstall", "install", "postinstall"] as const;
@@ -111,6 +119,7 @@ async function probeInstalledPackage(
 export async function readTarget(
   dir: string,
   fs: FileSystem = nodeFileSystem(),
+  configPath?: string,
 ): Promise<Result<TargetSnapshot>> {
   const manifestPath = displayPath(join(dir, "package.json"));
   const manifestOutcome = await fs.readTextFile(manifestPath);
@@ -157,6 +166,36 @@ export async function readTarget(
   const binaryBunLockPath = displayPath(join(dir, "bun.lockb"));
   const binaryBunLock = (await fs.pathExists(binaryBunLockPath)) ? binaryBunLockPath : undefined;
 
+  const wantedConfigPath =
+    configPath === undefined
+      ? undefined
+      : isAbsolute(configPath)
+        ? configPath
+        : join(dir, configPath);
+  const resolvedConfigPath = displayPath(wantedConfigPath ?? join(dir, CONFIG_FILENAME));
+  const configOutcome = await fs.readTextFile(resolvedConfigPath);
+
+  let config = DEFAULT_CONFIG;
+  let loadedConfigPath: string | undefined;
+
+  if (configOutcome.kind === "text") {
+    const parsed = parseConfig(configOutcome.text, resolvedConfigPath);
+    if (!parsed.ok) {
+      return { ok: false, error: parsed.error };
+    }
+    config = parsed.value;
+    loadedConfigPath = resolvedConfigPath;
+  } else if (configOutcome.kind === "error") {
+    return { ok: false, error: configOutcome.error };
+  } else if (wantedConfigPath !== undefined) {
+    return {
+      ok: false,
+      error: defineError("E_IO", `no configuration file at ${resolvedConfigPath}`, {
+        hint: `--config must point at a ${CONFIG_FILENAME} file.`,
+      }),
+    };
+  }
+
   const packageEvidence: PackageEvidence[] = [];
   for (const name of directDependencyNames(manifest)) {
     const evidence = await probeInstalledPackage(dir, name, fs);
@@ -175,6 +214,8 @@ export async function readTarget(
       unparsedLockfiles,
       binaryBunLock,
       packageEvidence,
+      config,
+      configPath: loadedConfigPath,
     },
   };
 }

@@ -1,7 +1,13 @@
-import type { Result } from "../core/errors";
+import { defineError, type Result } from "../core/errors";
 import { type FileSystem, nodeFileSystem } from "../core/fs";
 import { TOOL_NAME, TOOL_VERSION } from "../core/version";
-import { type RunSummary, type ScanReport, sortFindings, verdictFor } from "../report/types";
+import {
+  type RunSummary,
+  SCHEMA_VERSION,
+  type ScanReport,
+  sortFindings,
+  verdictFor,
+} from "../report/types";
 import { installFindings } from "../rules/install";
 import type { RuntimeInfo } from "../rules/install/engines";
 import { runFindings } from "../rules/run";
@@ -29,6 +35,9 @@ export interface ScanOptions {
   readonly runtime?: RuntimeInfo;
   /** Opt in to executing the target's code in a temporary copy. */
   readonly run?: boolean;
+  /** Script to boot; defaults to config, then the first of start/test. */
+  readonly runScript?: string;
+  readonly configPath?: string;
   readonly runEnvironment?: RunEnvironment;
   readonly runOptions?: RunOptions;
 }
@@ -37,7 +46,7 @@ export interface ScanOptions {
  * Scan one repository.
  *
  * Read-only unless `run` is set: the default path opens package.json, the
- * lockfiles, installed dependency manifests and the repository's own source, and
+ * lockfile, installed dependency manifests and the repository's own source, and
  * never executes the target's code. Everything that could not be read ends up in
  * the report as a finding rather than being silently dropped.
  */
@@ -48,15 +57,30 @@ export async function scanTarget(
   const fs = options.fs ?? nodeFileSystem();
   const runtime = options.runtime ?? detectRuntime();
 
-  const target = await readTarget(dir, fs);
+  const target = await readTarget(dir, fs, options.configPath);
   if (!target.ok) {
     return { ok: false, error: target.error };
   }
 
   const snapshot = target.value;
+  const config = snapshot.config;
   const graph = buildGraph(snapshot.manifest, snapshot.lockfiles[0]?.parsed);
-  const sources = await scanSources(dir, fs);
+  const sources = await scanSources(dir, fs, { excludePaths: config.excludePaths });
   const usages = collectNodeBuiltins(sources);
+
+  const requestedScript = options.runScript ?? config.run.script;
+  if (requestedScript !== undefined && snapshot.manifest.scripts[requestedScript] === undefined) {
+    const available = Object.keys(snapshot.manifest.scripts).sort();
+    return {
+      ok: false,
+      error: defineError("E_USAGE", `this project has no "${requestedScript}" script`, {
+        hint:
+          available.length === 0
+            ? "package.json declares no scripts at all."
+            : `available scripts: ${available.join(", ")}.`,
+      }),
+    };
+  }
 
   const staticFindings = [
     ...installFindings(snapshot, graph, runtime),
@@ -67,7 +91,12 @@ export async function scanTarget(
   let runSummary: RunSummary | undefined;
 
   if (options.run === true) {
-    const runOptions = options.runOptions ?? DEFAULT_RUN_OPTIONS;
+    const runOptions: RunOptions = {
+      installTimeoutMs: DEFAULT_RUN_OPTIONS.installTimeoutMs,
+      scriptTimeoutMs: DEFAULT_RUN_OPTIONS.scriptTimeoutMs,
+      maxCopyMegabytes: config.run.maxCopyMegabytes,
+      ...(requestedScript === undefined ? {} : { script: requestedScript }),
+    };
     const executed = await executeProject(
       dir,
       snapshot.manifest,
@@ -82,7 +111,7 @@ export async function scanTarget(
     executedFindings = runFindings(outcome, runOptions);
     runSummary = {
       script: outcome.script,
-      installExitCode: outcome.install.code,
+      installExitCode: outcome.install?.code ?? null,
       exitCode: outcome.result?.code ?? null,
       timedOut: outcome.result?.timedOut ?? false,
       durationMs: outcome.result?.durationMs,
@@ -90,12 +119,22 @@ export async function scanTarget(
     };
   }
 
-  const findings = sortFindings([...staticFindings, ...executedFindings]);
+  const ignored = new Set(config.ignore);
+  const ignoredPackages = new Set(config.ignorePackages);
+  const findings = sortFindings(
+    [...staticFindings, ...executedFindings].filter(
+      (finding) =>
+        !ignored.has(finding.id) &&
+        (finding.package === undefined || !ignoredPackages.has(finding.package)),
+    ),
+  );
   const counts = countBySeverity(findings.map((finding) => finding.severity));
 
   return {
     ok: true,
     value: {
+      schemaVersion: SCHEMA_VERSION,
+      failOn: config.failOn,
       tool: TOOL_NAME,
       version: TOOL_VERSION,
       target: dir,

@@ -5,6 +5,8 @@ import { renderJsonReport } from "../src/report/json";
 import type { ScanReport } from "../src/report/types";
 
 const REPORT: ScanReport = {
+  schemaVersion: 1,
+  failOn: "blocker",
   tool: "bunready",
   version: "0.1.0",
   target: "C:\\work\\app",
