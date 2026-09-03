@@ -17,6 +17,9 @@ Read this instead of the repository. Keep it under 120 lines.
   `docs/RELEASING.md`. The `v0.1.0` tag is blocked on O10 (npm trusted publishing).
 - Phase 4 (`--run`): **done** - the target is copied to a temporary directory,
   installed and booted there, and the first real failure is reported.
+- Owner brief (v0.1.0 readiness): config file, `--json` schema version, SARIF,
+  `--run` script choice and copy cap, and the self-scan fix are **done**.
+  Monorepo/workspaces, baseline/regression and the GitHub Action are **next**.
 
 All of phase 0-6 is implemented except the first release tag, which needs one
 action outside this repository (O10).
@@ -61,6 +64,11 @@ action outside this repository (O10).
 | D28 | A script that times out is a `risk`, and a script that passes is `info` | A server that never exits is not a failure; a green script is the strongest evidence a scan can produce. |
 | D29 | There is no network sandbox, and the report says so | `bun install` reaches the registry exactly as it would for the user; pretending otherwise would be worse than stating it. |
 | D30 | Workflow files are parsed in CI before merge | A workflow with invalid YAML does not fail loudly - GitHub refuses to run it and the repository goes quiet, which is how a broken `release.yml` reached main. |
+| D31 | `bunready.config.json` can suppress a finding but never rewrite its evidence, and the report echoes `failOn` | Acceptance is the repository's decision; the tool stays honest about what it observed. |
+| D32 | `schemaVersion` is the `--json` contract; additions never bump it, renames and removals do | CI can pin on it without pinning on the tool version. |
+| D33 | SARIF is generated from the same findings, in the same process | A second implementation of the rules would drift. |
+| D34 | `--run` refuses a target larger than the copy cap and reports `risk` | Silent skipping would read as "ran fine". |
+| D35 | O5 is resolved by listing `simple-git-hooks` in `trustedDependencies` | The finding was true; the honest fix is to trust the package, not to suppress the rule. |
 
 ## Public interfaces
 
@@ -122,6 +130,9 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 | Tests after phase 4 | `bun test --coverage` | 170 pass, 98.72% lines |
 | `--run` end to end | `bun run src/cli/index.ts <fixture> --run` | see the phase 4 commit; the fixture's failing script produced a blocker with its stack frame |
 | Workflow YAML | `python3 -c "yaml.safe_load(...)"` on all three | all parse; a new CI job enforces it |
+| Owner-brief slice | `bun test --coverage` | 201 pass, 98.53% lines |
+| Self scan | `bun run src/cli/index.ts .` | **exit 0** (O5 resolved via `trustedDependencies`) |
+| SARIF | `bun run src/cli/index.ts . --sarif` | SARIF 2.1.0, 2 rules / 2 results |
 
 ## Open questions
 
@@ -141,10 +152,17 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 - **O10** `release.yml` needs npm trusted publishing configured on npmjs.com
   (owner action) before the first publish can use OIDC without a token.
 
-- **O11** `--run` has no size cap on the temporary copy: a very large repository
-  is copied in full before the timeout can help.
+- **O5** *resolved*: `simple-git-hooks` is trusted, so the install script runs and
+  the finding is informational. Self-scan exits 0.
+- **O6** *resolved*: `--json` carries `schemaVersion`.
+- **O11** *resolved*: `--run` measures the tree and refuses to copy past
+  `run.maxCopyMegabytes`.
+- **O12** Monorepos: a workspaces root is scanned as one project today. Per-package
+  scanning, aggregation and `--scope` are the next slice.
+- **O13** No baseline/regression mode and no published GitHub Action yet.
 
 ## Next action
 
-1. Configure npm trusted publishing (O10), then tag `v0.1.0`.
-2. Optional polish: a `--run` flag to choose the script, and a copy size cap (O11).
+1. Monorepo/workspaces support (`--scope`, per-package scan, aggregated report).
+2. Baseline/regression detection, then the GitHub Action that uploads SARIF.
+3. `v0.1.0` once O10 (npm trusted publishing) is done.

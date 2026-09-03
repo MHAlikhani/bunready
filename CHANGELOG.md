@@ -74,6 +74,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The first real failure is captured with its stack frames. Nothing is executed
   in place, every command is timed, and the copy is removed even when the run
   fails.
+- `bunready.config.json` (`src/config/`): ignore findings by rule id or package,
+  allowlist native addons, exclude paths, raise or lower `failOn`, and choose the
+  script and copy limit `--run` uses. `--config` points elsewhere; a missing file
+  is an error rather than a silent default. See `docs/CONFIGURATION.md`.
+- `--json` now carries `schemaVersion` and `failOn`, so a CI job can pin the
+  contract and see which threshold produced the exit code.
+  See `docs/JSON-OUTPUT.md`.
+- `--sarif` writes SARIF 2.1.0 for code-scanning upload, generated from the same
+  findings as every other renderer.
+- `--run-script <name>` picks the script to boot, and `--run` refuses a target
+  larger than `run.maxCopyMegabytes` instead of silently skipping it.
 
 ### Fixed
 
@@ -88,6 +99,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the committed `bun.lock` is text lockfile format version 2, which Bun 1.2 and
   1.3 reject with an unknown-lockfile-version error. The CI matrix caught it on
   its first run.
+- Scanning bunready itself now exits `0`. The `install/lifecycle-script` finding
+  about `simple-git-hooks` was true, so the fix was to list it in
+  `trustedDependencies` rather than to weaken the rule.
 
 ### Changed
 

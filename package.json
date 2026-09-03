@@ -28,6 +28,9 @@
   "engines": {
     "bun": ">=1.4.0"
   },
+  "trustedDependencies": [
+    "simple-git-hooks"
+  ],
   "scripts": {
     "bunready": "bun run src/cli/index.ts",
     "typecheck": "tsc --noEmit",
