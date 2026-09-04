@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_CONFIG, parseConfig, severityFails } from "../src/config/config";
+import { DEFAULT_CONFIG, parseConfig } from "../src/config/config";
 
 describe("parseConfig", () => {
   test("defaults are what an absent file means", () => {
@@ -56,19 +56,18 @@ describe("parseConfig", () => {
     }
   });
 
+  test("rejects a document that is valid JSON but not an object", () => {
+    const result = parseConfig("[]");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("E_PARSE");
+      expect(result.error.hint).toContain("CONFIGURATION.md");
+    }
+  });
+
   test("ignores non-string entries instead of trusting them", () => {
     const result = parseConfig('{"ignore":["a",5],"nativeAllowlist":"sharp"}');
     expect(result.ok && result.value.ignore).toEqual(["a"]);
     expect(result.ok && result.value.nativeAllowlist).toEqual([]);
-  });
-});
-
-describe("severityFails", () => {
-  test("respects the configured threshold", () => {
-    expect(severityFails("blocker", DEFAULT_CONFIG)).toBe(true);
-    expect(severityFails("risk", DEFAULT_CONFIG)).toBe(false);
-    expect(severityFails("risk", { ...DEFAULT_CONFIG, failOn: "risk" })).toBe(true);
-    expect(severityFails("info", { ...DEFAULT_CONFIG, failOn: "info" })).toBe(true);
-    expect(severityFails("info", { ...DEFAULT_CONFIG, failOn: "risk" })).toBe(false);
   });
 });

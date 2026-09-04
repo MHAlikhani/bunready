@@ -1,6 +1,5 @@
 import { defineError, type Result } from "../core/errors";
-import type { Severity } from "../rules/severity";
-import { compareSeverity, SEVERITIES } from "../rules/severity";
+import { SEVERITIES, type Severity } from "../rules/severity";
 
 /**
  * `bunready.config.json`. Every knob here exists because a real repository
@@ -111,13 +110,4 @@ export function parseConfig(text: string, source = CONFIG_FILENAME): Result<Bunr
       },
     },
   };
-}
-
-/** Highest severity that still counts as a failure, or undefined when nothing does. */
-export function failingSeverity(config: BunreadyConfig): Severity | undefined {
-  return config.failOn;
-}
-
-export function severityFails(severity: Severity, config: BunreadyConfig): boolean {
-  return compareSeverity(severity, config.failOn) <= 0;
 }
