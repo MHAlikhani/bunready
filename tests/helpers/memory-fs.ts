@@ -23,6 +23,9 @@ export function memoryFileSystem(files: Record<string, string>): FileSystem {
       return content === undefined ? { kind: "missing" } : { kind: "text", text: content };
     },
     pathExists: async (path) => entries.has(normalize(path)),
+    writeTextFile: async (path, text) => {
+      entries.set(normalize(path), text);
+    },
     listDirectory: async (path): Promise<readonly DirectoryEntry[]> => {
       const prefix = `${normalize(path).replace(/\/+$/, "")}/`;
       const seen = new Map<string, boolean>();

@@ -11,6 +11,8 @@ export interface Manifest {
   readonly peerDependencies: Readonly<Record<string, string>>;
   readonly engines: Readonly<Record<string, string>>;
   readonly trustedDependencies: readonly string[];
+  /** Workspace globs: `workspaces` as an array, or its `packages` field. */
+  readonly workspaces: readonly string[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -33,6 +35,22 @@ function readStringMap(value: unknown): Record<string, string> {
     }
   }
   return result;
+}
+
+function readWorkspacePatterns(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is string => typeof entry === "string");
+  }
+  if (isRecord(value)) {
+    return readStringsFromArray(value.packages);
+  }
+  return [];
+}
+
+function readStringsFromArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : [];
 }
 
 /**
@@ -85,6 +103,7 @@ export function parseManifest(text: string, source: string): Result<Manifest> {
       peerDependencies: readStringMap(parsed.peerDependencies),
       engines: readStringMap(parsed.engines),
       trustedDependencies: readTrustedDependencies(parsed.trustedDependencies),
+      workspaces: readWorkspacePatterns(parsed.workspaces),
     },
   };
 }
