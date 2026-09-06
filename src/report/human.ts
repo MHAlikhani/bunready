@@ -44,6 +44,24 @@ export function renderHumanReport(report: ScanReport, theme: Theme): string {
 
   lines.push([theme.bold(`${report.tool} ${report.version}`), ...facts].join(theme.dim("  ·  ")));
   lines.push(theme.dim(report.target));
+
+  if (report.targets !== undefined) {
+    lines.push(theme.dim(`${report.targets.length} scanned directories:`));
+    for (const target of report.targets) {
+      lines.push(
+        theme.dim(`  ${target.kind === "root" ? "." : target.relative}  ${target.verdict}`),
+      );
+    }
+  }
+
+  if (report.baseline !== undefined) {
+    lines.push(
+      theme.dim(
+        `baseline ${report.baseline.path}: ${report.baseline.known} known, ${report.baseline.new} new`,
+      ),
+    );
+  }
+
   lines.push("");
 
   if (report.findings.length === 0) {
@@ -52,8 +70,13 @@ export function renderHumanReport(report: ScanReport, theme: Theme): string {
   } else {
     for (const finding of report.findings) {
       lines.push(
-        `${label(finding, theme)} ${theme.bold(finding.title)}  ${theme.dim(`(${finding.id})`)}`,
+        `${label(finding, theme)} ${theme.bold(finding.title)}  ${theme.dim(`(${finding.id})`)}${
+          finding.isNew === true ? theme.dim("  new") : ""
+        }`,
       );
+      if (report.targets !== undefined && finding.path !== undefined) {
+        lines.push(`  ${theme.dim("at:")} ${finding.path}`);
+      }
       lines.push(`  ${finding.detail}`);
       if (finding.evidence !== undefined) {
         lines.push(`  ${theme.dim("evidence:")} ${finding.evidence}`);

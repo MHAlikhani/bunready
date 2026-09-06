@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { Io } from "../src/cli/io";
 import { run, version } from "../src/cli/run";
 import type { ScanReport } from "../src/report/types";
@@ -118,6 +120,41 @@ describe("run", () => {
       expect(await run([dir], io)).toBe(2);
       expect(out).toHaveLength(0);
       expect(err.join("\n")).toContain("E_IO");
+    });
+  });
+
+  test("--sarif emits a SARIF report", async () => {
+    await withFixture(CLEAN_REPO, async (dir) => {
+      const { io, out } = capture();
+      expect(await run([dir, "--sarif"], io)).toBe(0);
+      const sarif = JSON.parse(out.join("\n"));
+      expect(sarif.version).toBe("2.1.0");
+      expect(sarif.runs[0].tool.driver.name).toBe("bunready");
+    });
+  });
+
+  test("--write-baseline records the findings and says so", async () => {
+    await withFixture(BLOCKED_REPO, async (dir) => {
+      const target = join(dir, "baseline.json");
+      const { io, err } = capture();
+      expect(await run([dir, "--write-baseline", target], io)).toBe(1);
+      expect(err.join("\n")).toContain("wrote");
+
+      const written = JSON.parse(await readFile(target, "utf8")) as { findings: string[] };
+      expect(written.findings.length).toBeGreaterThan(0);
+
+      // Re-scanning against that baseline accepts everything it recorded.
+      const second = capture();
+      expect(await run([dir, "--baseline", target], second.io)).toBe(0);
+    });
+  });
+
+  test("a baseline that cannot be written exits 2 with the reason", async () => {
+    await withFixture(CLEAN_REPO, async (dir) => {
+      const { io, err } = capture();
+      const code = await run([dir, "--write-baseline", join(dir, "missing-dir", "b.json")], io);
+      expect(code).toBe(2);
+      expect(err.join("\n")).toContain("could not write");
     });
   });
 

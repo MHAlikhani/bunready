@@ -45,7 +45,7 @@ export function renderSarifReport(report: ScanReport): string {
     ruleId: finding.id,
     level: LEVELS[finding.severity],
     message: { text: `${finding.title}. ${finding.detail}` },
-    locations: [{ physicalLocation: { artifactLocation: { uri: report.target } } }],
+    locations: [{ physicalLocation: { artifactLocation: { uri: finding.path ?? report.target } } }],
     partialFingerprints: { bunreadyFinding: `${finding.id}:${finding.title}` },
   }));
 

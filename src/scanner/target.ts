@@ -120,6 +120,7 @@ export async function readTarget(
   dir: string,
   fs: FileSystem = nodeFileSystem(),
   configPath?: string,
+  skipConfigDiscovery = false,
 ): Promise<Result<TargetSnapshot>> {
   const manifestPath = displayPath(join(dir, "package.json"));
   const manifestOutcome = await fs.readTextFile(manifestPath);
@@ -173,7 +174,9 @@ export async function readTarget(
         ? configPath
         : join(dir, configPath);
   const resolvedConfigPath = displayPath(wantedConfigPath ?? join(dir, CONFIG_FILENAME));
-  const configOutcome = await fs.readTextFile(resolvedConfigPath);
+  const configOutcome = skipConfigDiscovery
+    ? ({ kind: "missing" } as const)
+    : await fs.readTextFile(resolvedConfigPath);
 
   let config = DEFAULT_CONFIG;
   let loadedConfigPath: string | undefined;

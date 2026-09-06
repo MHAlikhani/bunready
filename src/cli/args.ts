@@ -11,6 +11,9 @@ export interface CliOptions {
   readonly run: boolean;
   readonly runScript: string | undefined;
   readonly config: string | undefined;
+  readonly scope: string | undefined;
+  readonly baseline: string | undefined;
+  readonly writeBaseline: string | undefined;
 }
 
 export const DEFAULT_TARGET = ".";
@@ -31,6 +34,9 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
   let run = false;
   let runScript: string | undefined;
   let config: string | undefined;
+  let scope: string | undefined;
+  let baseline: string | undefined;
+  let writeBaseline: string | undefined;
   let positionalOnly = false;
 
   const valueFor = (flag: string, index: number): Result<string> => {
@@ -100,6 +106,33 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
         index += 1;
         break;
       }
+      case "--scope": {
+        const value = valueFor(arg, index);
+        if (!value.ok) {
+          return value;
+        }
+        scope = value.value;
+        index += 1;
+        break;
+      }
+      case "--baseline": {
+        const value = valueFor(arg, index);
+        if (!value.ok) {
+          return value;
+        }
+        baseline = value.value;
+        index += 1;
+        break;
+      }
+      case "--write-baseline": {
+        const value = valueFor(arg, index);
+        if (!value.ok) {
+          return value;
+        }
+        writeBaseline = value.value;
+        index += 1;
+        break;
+      }
       default:
         if (arg.startsWith("-") && arg !== "-") {
           return err(
@@ -137,5 +170,8 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
     run,
     runScript,
     config,
+    scope,
+    baseline,
+    writeBaseline,
   });
 }

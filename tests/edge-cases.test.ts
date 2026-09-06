@@ -125,6 +125,7 @@ describe("readTarget failure paths", () => {
           ? { kind: "error", error: defineError("E_IO", "permission denied") }
           : { kind: "missing" },
       pathExists: async () => false,
+      writeTextFile: async () => undefined,
       listDirectory: async () => [],
     };
 
@@ -147,6 +148,7 @@ describe("readTarget failure paths", () => {
         return { kind: "missing" };
       },
       pathExists: async () => false,
+      writeTextFile: async () => undefined,
       listDirectory: async () => [],
     };
 

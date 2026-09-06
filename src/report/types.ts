@@ -18,6 +18,10 @@ export interface Finding {
   readonly detail: string;
   /** The dependency this finding is about, when there is one. */
   readonly package?: string;
+  /** The scanned directory this finding came from; set when more than one was scanned. */
+  readonly path?: string;
+  /** Present when a baseline was applied: false means it was already accepted. */
+  readonly isNew?: boolean;
   /** Observed proof from the scanned repo, e.g. the offending dependency. */
   readonly evidence?: string;
   /** Link to the Bun doc or issue backing the compatibility claim. */
@@ -26,6 +30,23 @@ export interface Finding {
 }
 
 export type Verdict = "ready" | "risky" | "blocked";
+
+/** One scanned directory in a multi-package repository. */
+export interface ScannedTarget {
+  readonly path: string;
+  readonly relative: string;
+  readonly kind: "root" | "workspace";
+  readonly name: string | undefined;
+  readonly verdict: Verdict;
+  readonly counts: Readonly<Record<Severity, number>>;
+}
+
+/** What a baseline did, when one was applied. */
+export interface BaselineSummary {
+  readonly path: string;
+  readonly known: number;
+  readonly new: number;
+}
 
 /** What `--run` actually did, so a run result can be read without the log. */
 export interface RunSummary {
@@ -62,6 +83,9 @@ export interface ScanReport {
   readonly findings: readonly Finding[];
   readonly stats?: ScanStats;
   readonly run?: RunSummary;
+  /** Present only when more than one directory was scanned. */
+  readonly targets?: readonly ScannedTarget[];
+  readonly baseline?: BaselineSummary;
 }
 
 /** Blockers first, then risks, then info; stable within a severity. */

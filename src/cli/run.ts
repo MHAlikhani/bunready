@@ -1,4 +1,6 @@
+import { newFindings, serializeBaseline } from "../config/baseline";
 import { formatError } from "../core/errors";
+import { type FileSystem, nodeFileSystem } from "../core/fs";
 import { TOOL_VERSION } from "../core/version";
 import { renderHumanReport } from "../report/human";
 import { renderJsonReport } from "../report/json";
@@ -24,7 +26,11 @@ export function version(): string {
  * `run` takes argv and an Io seam and returns an exit code, which keeps the
  * entry point at index.ts tiny and every behaviour reachable from tests.
  */
-export async function run(argv: readonly string[], io: Io = systemIo()): Promise<number> {
+export async function run(
+  argv: readonly string[],
+  io: Io = systemIo(),
+  fs: FileSystem = nodeFileSystem(),
+): Promise<number> {
   const theme = createTheme(colorEnabled(io.env, io.isTty));
   const parsed = parseArgs(argv);
 
@@ -50,9 +56,12 @@ export async function run(argv: readonly string[], io: Io = systemIo()): Promise
   }
 
   const scan = await scanTarget(options.target, {
+    fs,
     run: options.run,
     ...(options.runScript === undefined ? {} : { runScript: options.runScript }),
     ...(options.config === undefined ? {} : { configPath: options.config }),
+    ...(options.scope === undefined ? {} : { scope: options.scope }),
+    ...(options.baseline === undefined ? {} : { baselinePath: options.baseline }),
   });
 
   if (!scan.ok) {
@@ -61,6 +70,21 @@ export async function run(argv: readonly string[], io: Io = systemIo()): Promise
   }
 
   const report = scan.value;
+
+  if (options.writeBaseline !== undefined) {
+    try {
+      await fs.writeTextFile(options.writeBaseline, serializeBaseline(report.findings));
+    } catch (error) {
+      io.err(
+        `${theme.red("error")} could not write ${options.writeBaseline}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return EXIT_USAGE;
+    }
+    io.err(
+      `${theme.dim("!")} wrote ${report.findings.length} finding(s) to ${options.writeBaseline}`,
+    );
+  }
+
   if (options.json) {
     io.out(renderJsonReport(report));
   } else if (options.sarif) {
@@ -69,5 +93,6 @@ export async function run(argv: readonly string[], io: Io = systemIo()): Promise
     io.out(renderHumanReport(report, theme));
   }
 
-  return exitCodeForFindings(report.findings, report.failOn) === 0 ? EXIT_OK : EXIT_BLOCKERS;
+  const failing = newFindings(report.findings, report.baseline !== undefined);
+  return exitCodeForFindings(failing, report.failOn) === 0 ? EXIT_OK : EXIT_BLOCKERS;
 }

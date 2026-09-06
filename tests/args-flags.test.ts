@@ -51,4 +51,32 @@ describe("value flags", () => {
     expect(result.ok && result.value.target).toBe("repo");
     expect(result.ok && result.value.config).toBe("c.json");
   });
+
+  test("--scope, --baseline and --write-baseline capture their values", () => {
+    const result = parseArgs([
+      "--scope",
+      "packages/a",
+      "--baseline",
+      "b.json",
+      "--write-baseline",
+      "c.json",
+    ]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.scope).toBe("packages/a");
+      expect(result.value.baseline).toBe("b.json");
+      expect(result.value.writeBaseline).toBe("c.json");
+    }
+  });
+
+  test("every value flag complains when its value is missing", () => {
+    for (const flag of ["--config", "--scope", "--baseline", "--write-baseline", "--run-script"]) {
+      const result = parseArgs([flag]);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("E_USAGE");
+        expect(result.error.message).toContain(flag);
+      }
+    }
+  });
 });

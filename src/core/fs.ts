@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { type BunreadyError, defineError } from "./errors";
 
 /**
@@ -19,6 +19,7 @@ export interface DirectoryEntry {
 
 export interface FileSystem {
   readonly readTextFile: (path: string) => Promise<ReadOutcome>;
+  readonly writeTextFile: (path: string, text: string) => Promise<void>;
   readonly pathExists: (path: string) => Promise<boolean>;
   readonly listDirectory: (path: string) => Promise<readonly DirectoryEntry[]>;
 }
@@ -53,6 +54,9 @@ export function nodeFileSystem(): FileSystem {
       } catch {
         return false;
       }
+    },
+    writeTextFile: async (path, text) => {
+      await writeFile(path, text, "utf8");
     },
     listDirectory: async (path) => {
       try {

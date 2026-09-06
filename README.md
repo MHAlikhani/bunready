@@ -59,6 +59,41 @@ bun run src/cli/index.ts /path/to/node-project
 
 Exit codes: `0` no blockers, `1` blockers found, `2` usage error.
 
+## Monorepos
+
+A `workspaces` field in `package.json`, or a `pnpm-workspace.yaml`, is detected
+automatically: the root and every package are scanned, and the report aggregates
+them with a `targets` list and a `path` on each finding. `--scope packages/api`
+narrows a scan to the matching packages.
+
+## Baselines
+
+```sh
+bunready . --write-baseline bunready.baseline.json   # accept today's findings
+bunready . --baseline bunready.baseline.json         # fail only on new ones
+```
+
+A baseline records rule, package and path - not the message - so rewording a
+finding does not resurrect it.
+
+## In CI
+
+```yaml
+permissions:
+  contents: read
+  security-events: write   # required for the SARIF upload
+
+steps:
+  - uses: actions/checkout@v7
+  - uses: MHAlikhani/bunready@v0.1.0
+    with:
+      path: .
+```
+
+The action writes a JSON report, uploads the SARIF report to code scanning and
+fails the step when findings at or above `failOn` exist. Inputs: `path`,
+`version` (`latest` or `local`), `sarif-file`, `json-file`, `upload`.
+
 ## Why
 
 Moving a repo to Bun is usually a pile of small unknowns: which npm lifecycle

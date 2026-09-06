@@ -80,6 +80,56 @@ describe("renderHumanReport", () => {
   });
 });
 
+describe("multi-target and baseline rendering", () => {
+  const plain = createTheme(false);
+  const multi: ScanReport = {
+    ...REPORT,
+    verdict: "risky",
+    counts: { blocker: 0, risk: 1, info: 1 },
+    targets: [
+      {
+        path: "/work/app",
+        relative: ".",
+        kind: "root",
+        name: "root",
+        verdict: "ready",
+        counts: { blocker: 0, risk: 0, info: 0 },
+      },
+      {
+        path: "/work/app/packages/a",
+        relative: "packages/a",
+        kind: "workspace",
+        name: "a",
+        verdict: "risky",
+        counts: { blocker: 0, risk: 1, info: 0 },
+      },
+    ],
+    baseline: { path: "baseline.json", known: 1, new: 1 },
+    findings: [
+      { ...REPORT.findings[0]!, severity: "risk", path: "/work/app/packages/a", isNew: true },
+      { ...REPORT.findings[1]!, path: "/work/app", isNew: false },
+    ],
+  };
+
+  test("lists the scanned directories", () => {
+    const text = renderHumanReport(multi, plain);
+    expect(text).toContain("2 scanned directories");
+    expect(text).toContain("packages/a");
+    expect(text).toContain(".");
+  });
+
+  test("summarises the baseline", () => {
+    expect(renderHumanReport(multi, plain)).toContain("baseline baseline.json: 1 known, 1 new");
+  });
+
+  test("marks new findings and names their directory", () => {
+    const text = renderHumanReport(multi, plain);
+    expect(text).toContain("new");
+    expect(text).toContain("at:");
+    expect(text).toContain("/work/app/packages/a");
+  });
+});
+
 describe("renderJsonReport", () => {
   test("round-trips to the same report", () => {
     const parsed: unknown = JSON.parse(renderJsonReport(REPORT));

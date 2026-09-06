@@ -73,6 +73,7 @@ const MANIFEST_WITH_TEST = {
   peerDependencies: {},
   engines: {},
   trustedDependencies: [],
+  workspaces: [],
 };
 
 describe("firstFailure", () => {
