@@ -82,3 +82,28 @@ jobs:
 
       - name: Build
         run: bun build ./src/cli/index.ts --target=bun --outdir=dist
+
+  action:
+    name: action self test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # The action is used exactly as a consumer would use it, from source.
+      # A composite action that does not run is not a delivered feature.
+      - name: Run bunready through its own action
+        uses: ./
+        with:
+          version: local
+          path: .
+          upload: "false"
+          sarif-file: bunready-action.sarif
+
+      - name: Assert the action produced a SARIF report
+        run: |
+          set -euo pipefail
+          test -s bunready-action.sarif
+          python3 -c "import json,sys; doc=json.load(open('bunready-action.sarif')); assert doc['version'] == '2.1.0', doc['version']; print('sarif 2.1.0 with', len(doc['runs'][0]['results']), 'results')"

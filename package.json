@@ -21,6 +21,7 @@
   "files": [
     "src",
     "docs/brand",
+    "action.yml",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

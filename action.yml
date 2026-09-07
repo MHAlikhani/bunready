@@ -1,0 +1,86 @@
+name: bunready
+description: Report what will break when a Node or TypeScript repository moves to Bun, and upload the result to code scanning.
+author: MHAlikhani
+
+inputs:
+  path:
+    description: Repository to scan.
+    required: false
+    default: "."
+  version:
+    description: bunready version to run from npm, or "local" to use the source inside this action.
+    required: false
+    default: latest
+  sarif-file:
+    description: Where to write the SARIF report.
+    required: false
+    default: bunready.sarif
+  json-file:
+    description: Where to write the JSON report.
+    required: false
+    default: bunready.json
+  upload:
+    description: Upload the SARIF report to GitHub code scanning.
+    required: false
+    default: "true"
+
+outputs:
+  exit-code:
+    description: 0 when nothing at or above failOn was found, 1 otherwise.
+    value: ${{ steps.scan.outputs.exit-code }}
+  verdict:
+    description: ready, risky or blocked.
+    value: ${{ steps.scan.outputs.verdict }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      with:
+        bun-version: latest
+
+    # The scan itself never fails the step: the SARIF report has to be uploaded
+    # before the exit code is honoured, or code scanning would never see the
+    # findings of a failing run.
+    - name: Scan
+      id: scan
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_SARIF: ${{ inputs.sarif-file }}
+        INPUT_JSON: ${{ inputs.json-file }}
+      run: |
+        set -euo pipefail
+
+        if [ "${INPUT_VERSION}" = "local" ]; then
+          scan() { bun run "${GITHUB_ACTION_PATH}/src/cli/index.ts" "$@"; }
+        else
+          scan() { bunx --bun "bunready@${INPUT_VERSION}" "$@"; }
+        fi
+
+        set +e
+        scan "${INPUT_PATH}" --json > "${INPUT_JSON}"
+        status=$?
+        set -e
+
+        verdict=$(node -e 'const fs=require("node:fs");process.stdout.write(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).verdict)' "${INPUT_JSON}")
+
+        printf 'exit-code=%s\n' "${status}" >> "${GITHUB_OUTPUT}"
+        printf 'verdict=%s\n' "${verdict}" >> "${GITHUB_OUTPUT}"
+        printf 'bunready: %s (exit %s)\n' "${verdict}" "${status}" >> "${GITHUB_STEP_SUMMARY}"
+
+        scan "${INPUT_PATH}" --sarif > "${INPUT_SARIF}"
+
+    - name: Upload SARIF
+      if: ${{ inputs.upload == 'true' }}
+      uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+      with:
+        sarif_file: ${{ inputs.sarif-file }}
+        category: bunready
+
+    - name: Fail when bunready reported findings at or above failOn
+      if: ${{ steps.scan.outputs.exit-code != '0' }}
+      shell: bash
+      run: exit 1
