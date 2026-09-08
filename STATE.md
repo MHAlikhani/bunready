@@ -18,8 +18,9 @@ Read this instead of the repository. Keep it under 120 lines.
 - Phase 4 (`--run`): **done** - the target is copied to a temporary directory,
   installed and booted there, and the first real failure is reported.
 - Owner brief (v0.1.0 readiness): config file, `--json` schema version, SARIF,
-  `--run` script choice and copy cap, and the self-scan fix are **done**.
-  Monorepo/workspaces, baseline/regression and the GitHub Action are **next**.
+  `--run` script choice and copy cap, the self-scan fix, **workspace scanning**
+  with `--scope`, **baseline/regression detection** and the **GitHub Action** are
+  all **done**. Changed-only scanning is the remaining brief item.
 
 All of phase 0-6 is implemented except the first release tag, which needs one
 action outside this repository (O10).
@@ -69,6 +70,10 @@ action outside this repository (O10).
 | D33 | SARIF is generated from the same findings, in the same process | A second implementation of the rules would drift. |
 | D34 | `--run` refuses a target larger than the copy cap and reports `risk` | Silent skipping would read as "ran fine". |
 | D35 | O5 is resolved by listing `simple-git-hooks` in `trustedDependencies` | The finding was true; the honest fix is to trust the package, not to suppress the rule. |
+| D36 | A workspace scan reads configuration once from the root and applies it to every package; `--scope` narrows to packages and leaves the root out | One report cannot have two different thresholds. |
+| D37 | A baseline fingerprint is rule + package + path, never the message | Rewording a finding must not resurrect one you have already triaged. |
+| D38 | The Action uploads SARIF before it honours the scan's exit code | Otherwise code scanning would never see the findings of a failing run. |
+| D39 | The Action can run `version: local` | It is what lets CI test the action against this repository before the first publish. |
 
 ## Public interfaces
 
@@ -133,6 +138,10 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 | Owner-brief slice | `bun test --coverage` | 201 pass, 98.53% lines |
 | Self scan | `bun run src/cli/index.ts .` | **exit 0** (O5 resolved via `trustedDependencies`) |
 | SARIF | `bun run src/cli/index.ts . --sarif` | SARIF 2.1.0, 2 rules / 2 results |
+| Workspaces + baseline + action slice | `bun test --coverage` | 239 pass, 98.87% lines |
+| Monorepo smoke | `tests/monorepo.test.ts` | root + 2 packages aggregated, `--scope` narrows, pnpm workspaces detected |
+| Baseline smoke | `--write-baseline` then `--baseline` | second run exits 0 against its own baseline |
+| Action | `ci.yml` job `action self test` | runs `uses: ./` with `version: local` and asserts the SARIF file |
 
 ## Open questions
 
@@ -157,12 +166,15 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 - **O6** *resolved*: `--json` carries `schemaVersion`.
 - **O11** *resolved*: `--run` measures the tree and refuses to copy past
   `run.maxCopyMegabytes`.
-- **O12** Monorepos: a workspaces root is scanned as one project today. Per-package
-  scanning, aggregation and `--scope` are the next slice.
-- **O13** No baseline/regression mode and no published GitHub Action yet.
+- **O12** *resolved*: workspace detection, per-package scanning, aggregation and
+  `--scope` ship; `tests/monorepo.test.ts` covers them.
+- **O13** *resolved*: baseline/regression detection and `action.yml` ship.
+- **O14** Changed-only scanning (diff against a git ref) is not implemented;
+  `--scope` selects packages, not changes.
+- **O15** The Action's `version: latest` needs the npm publish (O10);
+  `version: local` works today and is what CI exercises.
 
 ## Next action
 
-1. Monorepo/workspaces support (`--scope`, per-package scan, aggregated report).
-2. Baseline/regression detection, then the GitHub Action that uploads SARIF.
-3. `v0.1.0` once O10 (npm trusted publishing) is done.
+1. Changed-only scanning for monorepos (O14).
+2. `v0.1.0` once O10 (npm trusted publishing) is done.

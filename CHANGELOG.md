@@ -85,6 +85,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   findings as every other renderer.
 - `--run-script <name>` picks the script to boot, and `--run` refuses a target
   larger than `run.maxCopyMegabytes` instead of silently skipping it.
+- Workspace support: `workspaces` in package.json or a `pnpm-workspace.yaml` is
+  detected, every package is scanned, the report aggregates them with a `targets`
+  list and a `path` on each finding, and `--scope` narrows a scan to the matching
+  packages. Globs are expanded with a small, documented matcher.
+- Baseline and regression detection: `--write-baseline` records the findings you
+  have accepted, `--baseline` compares against them, marks the rest `new` and
+  fails the run only for those. The fingerprint is rule + package + path.
+- `action.yml`: a composite GitHub Action that scans a repository, uploads the
+  SARIF report to code scanning and fails the step on findings at or above
+  `failOn`. `version: local` runs the action from source, which is how CI tests
+  it before the first publish.
 
 ### Fixed
 
@@ -102,6 +113,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scanning bunready itself now exits `0`. The `install/lifecycle-script` finding
   about `simple-git-hooks` was true, so the fix was to list it in
   `trustedDependencies` rather than to weaken the rule.
+- Workspace glob expansion: `packages/*` and `packages/**` are expanded against
+  the correct parent directory, bounded in depth, and never walk `node_modules`.
+  `finding.path` is also normalised to forward slashes on every platform.
 
 ### Changed
 
