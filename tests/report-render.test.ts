@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createTheme } from "../src/cli/theme";
 import { renderHumanReport } from "../src/report/human";
 import { renderJsonReport } from "../src/report/json";
-import type { ScanReport } from "../src/report/types";
+import type { Finding, ScanReport } from "../src/report/types";
 
 const REPORT: ScanReport = {
   schemaVersion: 1,
@@ -80,6 +80,14 @@ describe("renderHumanReport", () => {
   });
 });
 
+function findingAt(index: number): Finding {
+  const found = REPORT.findings[index];
+  if (found === undefined) {
+    throw new Error(`fixture finding ${index} is missing`);
+  }
+  return found;
+}
+
 describe("multi-target and baseline rendering", () => {
   const plain = createTheme(false);
   const multi: ScanReport = {
@@ -106,8 +114,8 @@ describe("multi-target and baseline rendering", () => {
     ],
     baseline: { path: "baseline.json", known: 1, new: 1 },
     findings: [
-      { ...REPORT.findings[0]!, severity: "risk", path: "/work/app/packages/a", isNew: true },
-      { ...REPORT.findings[1]!, path: "/work/app", isNew: false },
+      { ...findingAt(0), severity: "risk", path: "/work/app/packages/a", isNew: true },
+      { ...findingAt(1), path: "/work/app", isNew: false },
     ],
   };
 
