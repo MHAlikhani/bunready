@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.0] - 2026-09-09
+
 ### Added
 
 - Repository hygiene baseline: `.gitignore`, `.gitattributes`, `.editorconfig`,
@@ -132,4 +136,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and that claim needs a primary source. Until then the rule reports what the
   repository imports and cites the compatibility table.
 
-[Unreleased]: https://github.com/MHAlikhani/bunready/commits/main
+[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.1.0

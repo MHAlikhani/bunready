@@ -1,6 +1,9 @@
 name: bunready
 description: Report what will break when a Node or TypeScript repository moves to Bun, and upload the result to code scanning.
 author: MHAlikhani
+branding:
+  icon: check-circle
+  color: orange
 
 inputs:
   path:

@@ -20,12 +20,15 @@
   },
   "files": [
     "src",
-    "docs/brand",
+    "docs",
     "action.yml",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "bun": ">=1.4.0"
   },

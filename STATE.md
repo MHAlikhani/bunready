@@ -174,7 +174,16 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 - **O15** The Action's `version: latest` needs the npm publish (O10);
   `version: local` works today and is what CI exercises.
 
+- **O10** npm trusted publishing is not configured; the first release was
+  published from a logged-in workstation instead. Configure the trusted
+  publisher on npmjs.com (repository `MHAlikhani/bunready`, workflow
+  `release.yml`) so later tags publish with provenance and no local credentials.
+- **O16** GitHub Marketplace listing needs one manual step: the release exists
+  and `action.yml` carries `branding`, but a listing requires accepting the
+  Marketplace Developer Agreement and 2FA in the repository UI.
+
 ## Next action
 
-1. Changed-only scanning for monorepos (O14).
-2. `v0.1.0` once O10 (npm trusted publishing) is done.
+1. Publish the Marketplace listing for the action (O16).
+2. Configure npm trusted publishing (O10) before the next release.
+3. Changed-only scanning for monorepos (O14).

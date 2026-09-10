@@ -120,7 +120,23 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # A version can already be on the registry - published from a laptop, or
+      # this workflow re-run. Failing the release for that would be noise, and
+      # quietly re-publishing is impossible anyway.
+      - name: Is this version already published?
+        id: published
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          if npm view "bunready@${version}" version >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::bunready@${version} is already on the registry; skipping npm publish"
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish
+        if: steps.published.outputs.already != 'true'
         run: npm publish --provenance --access public
 
   release:
