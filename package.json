@@ -16,7 +16,7 @@
   "type": "module",
   "private": false,
   "bin": {
-    "bunready": "./src/cli/index.ts"
+    "bunready": "src/cli/index.ts"
   },
   "files": [
     "src",
