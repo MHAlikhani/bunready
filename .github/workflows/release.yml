@@ -128,9 +128,9 @@ jobs:
         run: |
           set -euo pipefail
           version=$(node -p "require('./package.json').version")
-          if npm view "bunready@${version}" version >/dev/null 2>&1; then
+          if npm view "@mh-alikhani/bunready@${version}" version >/dev/null 2>&1; then
             echo "already=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::bunready@${version} is already on the registry; skipping npm publish"
+            echo "::notice::@mh-alikhani/bunready@${version} is already on the registry; skipping npm publish"
           else
             echo "already=false" >> "$GITHUB_OUTPUT"
           fi

@@ -9,7 +9,7 @@ this repository.
    this itself and fails closed: it queries the `ci` workflow for a successful
    run on exactly that SHA. If CI is red or has not run, there is no release.
 2. **Trusted publishing is configured on npmjs.com** (owner action, done once).
-   Open the `bunready` package settings on npmjs.com, add a trusted publisher
+   Open the `@mh-alikhani/bunready` package settings on npmjs.com, add a trusted publisher
    pointing at this repository, the `release.yml` workflow file, and the `release`
    environment if you use one. Without this, the publish job fails with an
    authentication error — by design, because the alternative would be a

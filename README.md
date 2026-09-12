@@ -11,8 +11,7 @@
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](tsconfig.json)
 [![status](https://img.shields.io/badge/status-pre--alpha-orange)](#status)
 
-<!-- The npm badge goes live with the first publish.
-[![npm](https://img.shields.io/npm/v/bunready)](https://www.npmjs.com/package/bunready)
+[![npm](https://img.shields.io/npm/v/@mh-alikhani/bunready)](https://www.npmjs.com/package/@mh-alikhani/bunready)
 -->
 
 </div>
@@ -31,7 +30,12 @@ without a source. See [STATE.md](STATE.md) for what exists and what does not.
 
 ## Install
 
-Not published to npm yet. Until then, run from source:
+```sh
+bunx @mh-alikhani/bunready .          # run without installing
+bun add --global @mh-alikhani/bunready
+```
+
+Or from a checkout:
 
 ```sh
 git clone https://github.com/MHAlikhani/bunready.git
@@ -42,11 +46,10 @@ bun install
 ## Usage
 
 ```sh
-# from a checkout
-bun run src/cli/index.ts --help
+bunx @mh-alikhani/bunready --help
 
 # against a target repository
-bun run src/cli/index.ts /path/to/node-project
+bunx @mh-alikhani/bunready /path/to/node-project
 ```
 
 | Flag | Meaning |

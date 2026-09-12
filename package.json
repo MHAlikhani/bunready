@@ -1,5 +1,5 @@
 {
-  "name": "bunready",
+  "name": "@mh-alikhani/bunready",
   "version": "0.1.0",
   "description": "Bun-readiness scanner: one command that shows what will break before you move a Node/TS repo to Bun.",
   "keywords": [
@@ -16,7 +16,7 @@
   "type": "module",
   "private": false,
   "bin": {
-    "bunready": "src/cli/index.ts"
+    "bunready": "./src/cli/index.ts"
   },
   "files": [
     "src",

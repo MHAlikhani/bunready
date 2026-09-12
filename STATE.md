@@ -74,6 +74,7 @@ action outside this repository (O10).
 | D37 | A baseline fingerprint is rule + package + path, never the message | Rewording a finding must not resurrect one you have already triaged. |
 | D38 | The Action uploads SARIF before it honours the scan's exit code | Otherwise code scanning would never see the findings of a failing run. |
 | D39 | The Action can run `version: local` | It is what lets CI test the action against this repository before the first publish. |
+| D40 | The npm package is `@mh-alikhani/bunready` | npm refuses the unscoped name: its normalised-name rule reports `bunready` as too similar to the existing `bun-ready` (the competitor). A scope keeps the repo, CLI name, action and brand intact, and npm suggested it. |
 
 ## Public interfaces
 
@@ -178,6 +179,10 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
   published from a logged-in workstation instead. Configure the trusted
   publisher on npmjs.com (repository `MHAlikhani/bunready`, workflow
   `release.yml`) so later tags publish with provenance and no local credentials.
+- **O17** The unscoped npm name is not available to us: `npm publish bunready`
+  is refused as too similar to `bun-ready`, even though `npm view bunready`
+  returns 404. An appeal to npm support is the only route to it, and it is
+  optional now that D40 publishes a scoped package.
 - **O16** GitHub Marketplace listing needs one manual step: the release exists
   and `action.yml` carries `branding`, but a listing requires accepting the
   Marketplace Developer Agreement and 2FA in the repository UI.
