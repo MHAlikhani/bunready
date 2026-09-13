@@ -137,7 +137,26 @@ jobs:
 
       - name: Publish
         if: steps.published.outputs.already != 'true'
-        run: npm publish --provenance --access public
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+
+          set +e
+          npm publish --provenance --access public > /tmp/publish.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/publish.log
+
+          if [ "${status}" -ne 0 ]; then
+            # A publish can fail simply because the version is already there:
+            # the check above can run before the registry has propagated a
+            # publish from somewhere else. That is a successful release for us.
+            if npm view "@mh-alikhani/bunready@${version}" version >/dev/null 2>&1; then
+              echo "::notice::publish failed, but @mh-alikhani/bunready@${version} exists; treating as published"
+              exit 0
+            fi
+            exit "${status}"
+          fi
 
   release:
     name: attach artifacts to the release
