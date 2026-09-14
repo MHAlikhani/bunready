@@ -97,6 +97,18 @@ The action writes a JSON report, uploads the SARIF report to code scanning and
 fails the step when findings at or above `failOn` exist. Inputs: `path`,
 `version` (`latest` or `local`), `sarif-file`, `json-file`, `upload`.
 
+## How it is different
+
+- **Evidence, not estimates.** Every finding records what was observed in your
+  repository, and every compatibility claim links to Bun's documentation or an
+  issue. Nothing is inferred from a package name.
+- **Built for CI.** Stable exit codes, `--json` with a versioned schema,
+  `--sarif` for code scanning, and baselines so a repository can fail on what is
+  new instead of on its whole history.
+- **Whole-repository aware.** Workspace packages are scanned and aggregated, and
+  `--run` installs and boots the project in a temporary copy to catch the first
+  real failure rather than predicting one.
+
 ## Why
 
 Moving a repo to Bun is usually a pile of small unknowns: which npm lifecycle

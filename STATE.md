@@ -187,6 +187,12 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
   and `action.yml` carries `branding`, but a listing requires accepting the
   Marketplace Developer Agreement and 2FA in the repository UI.
 
+- **O18** The GitHub social preview image needs one manual upload (repository
+  Settings -> General -> Social preview). `assets/og.png` is already 1200x630 and
+  committed; GitHub exposes no API for it.
+- **O19** The improved npm keywords apply from the next release: the published
+  0.1.0 keeps the metadata it was packed with.
+
 ## Next action
 
 1. Publish the Marketplace listing for the action (O16).
