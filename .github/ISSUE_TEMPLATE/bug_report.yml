@@ -1,0 +1,37 @@
+name: Bug report
+description: bunready gave a wrong, missing or crashing result.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. A wrong verdict is the most important thing to fix, and the
+        fastest route is a result we can reproduce.
+  - type: input
+    id: version
+    attributes:
+      label: bunready version
+      description: Output of `bunready --version`.
+    validations:
+      required: true
+  - type: input
+    id: bun
+    attributes:
+      label: Bun version and platform
+      description: Output of `bun --version`, plus your OS.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened
+      description: Include the exact output. `--json` is easier to read for us than the table.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The smallest package.json and lockfile (or command) that shows it.
+    validations:
+      required: true

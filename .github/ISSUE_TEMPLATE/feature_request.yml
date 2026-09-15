@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest a rule, an output format or a flag.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The decision you are trying to make
+      description: What are you trying to work out about a repository, and what stops you today?
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Evidence for a new rule
+      description: |
+        Rules must rest on something observable. Link the Bun documentation or
+        issue tracker entry that would back a compatibility claim - see
+        docs/adr/0001-data-source-policy.md. Findings that are only a guess are
+        not shipped.
+    validations:
+      required: false
