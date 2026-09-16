@@ -54,10 +54,22 @@ export function patternsFromPnpmWorkspace(text: string): string[] {
     if (!inPackages) {
       continue;
     }
-    const entry = /^-+ *(.*)$/.exec(trimmed);
-    const value = entry?.[1]?.trim();
-    if (value !== undefined && value !== "") {
-      patterns.push(value.replace(/^['"]|['"]$/g, ""));
+    // Walked rather than matched: a pattern mixing a dash run, a space run and a
+    // catch-all is ambiguous, and CodeQL is right that it backtracks on a string
+    // of dashes and spaces. The value is trimmed here instead.
+    let cursor = 0;
+    while (cursor < trimmed.length && trimmed[cursor] === "-") {
+      cursor += 1;
+    }
+    const value =
+      cursor === 0
+        ? ""
+        : trimmed
+            .slice(cursor)
+            .trim()
+            .replace(/^['"]|['"]$/g, "");
+    if (value !== "") {
+      patterns.push(value);
     }
   }
 
