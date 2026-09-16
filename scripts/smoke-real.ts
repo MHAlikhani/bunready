@@ -12,7 +12,7 @@
  */
 import { $ } from "bun";
 
-const CLI = import.meta.dir.replace(/\\/g, "/") + "/../src/cli/index.ts";
+const CLI = `${import.meta.dir.replace(/\\/g, "/")}/../src/cli/index.ts`;
 const WORK = ".smoke-tmp";
 
 const SUBJECTS: { name: string; label: string; tarball: string; subdirectory?: string }[] = [
@@ -47,19 +47,29 @@ for (const subject of SUBJECTS) {
       throw new Error(`download returned HTTP ${response.status}`);
     }
     await Bun.write(`${dest}.tar.gz`, response);
-    if (subject.subdirectory) {
-      // Extract only the example subdirectory: whole-monorepo tarballs are huge
-      // and full of symlinks that fail on Windows.
-      await $`mkdir -p ${dest} && tar -xzf ${dest}.tar.gz -C ${dest} --strip-components=2 --wildcards '*${subject.subdirectory}/*'`;
-    } else {
-      await $`mkdir -p ${dest} && tar -xzf ${dest}.tar.gz -C ${dest} --strip-components=1`;
+    await $`mkdir -p ${dest}`;
+
+    // Select the member path and strip it, rather than filtering with
+    // `--wildcards`: that flag is GNU tar only, and the bsdtar shipped with
+    // Windows rejects it, which is how this script failed on a Windows machine.
+    // Only the wanted subtree is extracted: whole-monorepo tarballs are huge and
+    // full of symlinks that fail on Windows.
+    const wanted = subject.subdirectory ? subject.subdirectory.split("/").filter(Boolean) : [];
+    const listing = await $`tar -tzf ${dest}.tar.gz`.text();
+    const first = listing.split("\n").find((line) => line.trim() !== "") ?? "";
+    const root = first.split("/")[0] ?? "";
+    if (root === "") {
+      throw new Error("the archive listing was empty");
     }
+    const member = [root, ...wanted].join("/");
+    await $`tar -xzf ${dest}.tar.gz -C ${dest} --strip-components=${wanted.length + 1} ${member}`;
   } catch (error) {
     console.error(`   setup failed: ${error instanceof Error ? error.message : error}`);
     failed = true;
     continue;
   }
-  const target = subject.subdirectory ? `${dest}/${subject.subdirectory.split("/").pop()}` : dest;
+  // Every extraction strips the archive root, so the project is always at dest.
+  const target = dest;
   const scan = Bun.spawnSync(["bun", "run", CLI, target, "--json"]);
   if (scan.exitCode === null || scan.exitCode > 1) {
     console.error(
