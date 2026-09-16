@@ -62,6 +62,30 @@ describe("lifecycle script rule", () => {
     expect(findings.some((entry) => entry.severity === "blocker")).toBe(false);
   });
 
+  test("an optional dependency's skipped install script is a risk, not a blocker", async () => {
+    const findings = await findingsFor({
+      "package.json": JSON.stringify({ name: "app", dependencies: { chokidar: "^3.0.0" } }),
+      "package-lock.json": JSON.stringify({
+        name: "app",
+        lockfileVersion: 3,
+        packages: {
+          "": { name: "app" },
+          "node_modules/chokidar": { version: "3.6.0" },
+          "node_modules/fsevents": {
+            version: "2.3.3",
+            hasInstallScript: true,
+            optional: true,
+            os: ["darwin"],
+          },
+        },
+      }),
+    });
+
+    const finding = findings.find((entry) => entry.package === "fsevents");
+    expect(finding?.severity).toBe("risk");
+    expect(findings.some((entry) => entry.severity === "blocker")).toBe(false);
+  });
+
   test("an installed dependency manifest is evidence too", async () => {
     const findings = await findingsFor({
       "package.json": JSON.stringify({ name: "app", dependencies: { "weird-native": "1.0.0" } }),
