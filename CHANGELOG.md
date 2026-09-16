@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
-## [0.3.2] - 2026-09-20
+## [0.3.2] - 2026-09-16
 
 ### Changed
 
@@ -24,7 +24,7 @@ Nothing yet.
   size is the Bun runtime), and deferring the scanner behind dynamic imports moved
   the cost into the scan path without a repeatable win.
 
-## [0.3.1] - 2026-09-19
+## [0.3.1] - 2026-09-16
 
 ### Fixed
 
@@ -37,7 +37,7 @@ Nothing yet.
   Behaviour is unchanged; `tests/workspaces.test.ts` and `tests/semver.test.ts`
   cover the affected paths.
 
-## [0.3.0] - 2026-09-18
+## [0.3.0] - 2026-09-16
 
 ### Added
 
