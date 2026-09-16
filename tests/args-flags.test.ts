@@ -3,11 +3,12 @@ import { parseArgs } from "../src/cli/args";
 
 describe("output flags", () => {
   test("--sarif is parsed and defaults to off", () => {
-    expect(
-      parseArgs([]).ok &&
-        parseArgs([]).ok &&
-        (parseArgs([]) as { value: { sarif: boolean } }).value.sarif,
-    ).toBe(false);
+    const defaults = parseArgs([]);
+    expect(defaults.ok).toBe(true);
+    if (defaults.ok) {
+      expect(defaults.value.sarif).toBe(false);
+    }
+
     const result = parseArgs(["--sarif"]);
     expect(result.ok && result.value.sarif).toBe(true);
   });
