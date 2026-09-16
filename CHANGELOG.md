@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.3.1] - 2026-09-19
+
+### Fixed
+
+- Three polynomial-time regular expressions, reported by CodeQL as
+  `js/polynomial-redos`. bunready parses files it does not control - a
+  `pnpm-workspace.yaml` from a repository being scanned, a semver range in its
+  `engines` - so a pathological string could have made a scan take quadratic
+  time. The pnpm list item and the semver operator split are now parsed
+  directly, and trailing-slash stripping is a linear loop instead of `/+$`.
+  Behaviour is unchanged; `tests/workspaces.test.ts` and `tests/semver.test.ts`
+  cover the affected paths.
+
 ## [0.3.0] - 2026-09-18
 
 ### Added
@@ -188,7 +201,8 @@ Nothing yet.
   and that claim needs a primary source. Until then the rule reports what the
   repository imports and cites the compatibility table.
 
-[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.1
 [0.3.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.0
 [0.2.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.2.0
 [0.1.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.1.0
