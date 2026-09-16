@@ -25,11 +25,16 @@ export function lifecycleScriptFindings(
   lockfile: ParsedLockfile | undefined,
 ): Finding[] {
   const trusted = new Set(snapshot.manifest.trustedDependencies);
-  const evidence = new Map<string, string>();
+  const evidence = new Map<string, { where: string; optional: boolean }>();
 
   for (const pkg of lockfile?.packages ?? []) {
     if (pkg.installScript) {
-      evidence.set(pkg.name, `the lockfile marks ${pkg.name} as requiring a build step`);
+      evidence.set(pkg.name, {
+        where: `the lockfile marks ${pkg.name} as requiring a build step`,
+        // An optional dependency is tolerated absent by design, so a skipped
+        // install script can never break the install itself (e.g. fsevents).
+        optional: pkg.optional,
+      });
     }
   }
 
@@ -38,12 +43,12 @@ export function lifecycleScriptFindings(
       continue;
     }
     const scripts = probe.installScripts.map((name) => `"${name}"`).join(", ");
-    evidence.set(probe.name, `${probe.path} declares ${scripts}`);
+    evidence.set(probe.name, { where: `${probe.path} declares ${scripts}`, optional: false });
   }
 
   return [...evidence.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([name, where]) => {
+    .map(([name, { where, optional }]) => {
       if (trusted.has(name)) {
         return {
           id: ID,
@@ -53,6 +58,19 @@ export function lifecycleScriptFindings(
           detail:
             "Bun will run this package's install script because it is listed in trustedDependencies.",
           evidence: where,
+        };
+      }
+      if (optional) {
+        return {
+          id: ID,
+          severity: "risk" as const,
+          title: `${name} is an optional dependency whose install script will not run`,
+          package: name,
+          detail:
+            "Bun installs dependencies without running their lifecycle scripts unless the package is listed in trustedDependencies. Because this package is optional, the install still succeeds without it - but if it does install on this platform and needs its build step, it will be broken.",
+          evidence: where,
+          hint: `check whether ${name} is actually used on this platform; if it is, add it to trustedDependencies in package.json and reinstall.`,
+          source: LIFECYCLE_DOC,
         };
       }
       return {
