@@ -100,12 +100,14 @@ jobs:
         with:
           persist-credentials: false
 
-      # Deliberately no `registry-url`: this job authenticates through OIDC, and
-      # a generated .npmrc pointing at an unset token would fight that.
+      # Authenticates through NPM_TOKEN until trusted publishing is configured
+      # for this package on npmjs.com; `id-token: write` above keeps --provenance
+      # working either way.
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
 
       # Trusted publishing needs an npm recent enough to speak it; runner images
       # ship an older one.
@@ -137,6 +139,8 @@ jobs:
 
       - name: Publish
         if: steps.published.outputs.already != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
           version=$(node -p "require('./package.json').version")
