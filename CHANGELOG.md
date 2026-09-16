@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.3.3] - 2026-09-16
+
+### Fixed
+
+- `targets[].path` and `report.target` are normalised like `finding.path`, so
+  grouping findings by target works on Windows as well as POSIX. The new
+  per-target tests caught this.
+- Per-target verdicts and counts are computed from the findings that survived
+  configuration, so a package can no longer read "blocked" while the report says
+  "ready" because its blocker was ignored.
+- An excluded path no longer consumes the source-file budget: the scan used to
+  report itself as truncated for files it was never going to read.
+- Template-literal interpolations are scanned as code. `${require("node:fs")}`
+  is an import; template text that merely looks like one is still ignored.
+
+### Changed
+
+- A workspace root no longer re-walks its packages' sources. Benchmark, 8
+  packages of 800 files each: 410ms and 8,400 files read became 303ms and 6,400 -
+  now exactly one package's worth per target.
+- Line numbers come from one newline map per file instead of a rescan per match.
+- `sortFindings` is documented and tested as a total order (severity, id, title,
+  path), so output is identical however the findings were collected.
+- The README is rebuilt around a quickstart, what it checks, CI, FAQ and a
+  documentation index.
+
+### Added
+
+- `bun run bench` measures a single package and a workspace.
+- `docs/README.md` indexes the documentation.
+
+
 ## [0.3.2] - 2026-09-16
 
 ### Changed
@@ -216,7 +248,9 @@ Nothing yet.
   and that claim needs a primary source. Until then the rule reports what the
   repository imports and cites the compatibility table.
 
-[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.3
+[0.3.3]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.3
 [0.3.2]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.2
 [0.3.1]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.1
 [0.3.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.0
