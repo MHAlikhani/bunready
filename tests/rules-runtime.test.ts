@@ -29,10 +29,14 @@ async function scanOf(files: Record<string, string>): Promise<SourceScan> {
 }
 
 describe("readRuntimeDataset", () => {
-  test("the vendored dataset parses and ships no unverified gaps", () => {
+  test("the vendored dataset parses and every gap carries a source", () => {
     const dataset = readRuntimeDataset();
     expect(dataset.compatibilityDocs).toBe(DOCS);
-    expect(dataset.gaps).toEqual([]);
+    expect(dataset.gaps.length).toBeGreaterThan(0);
+    for (const gap of dataset.gaps) {
+      expect(gap.source.startsWith("https://")).toBe(true);
+      expect(gap.note.length).toBeGreaterThan(0);
+    }
   });
 
   test("malformed entries are dropped instead of trusted", () => {
@@ -123,10 +127,23 @@ describe("runtimeBuiltinFindings", () => {
     expect(findings.filter((finding) => finding.severity === "risk")).toHaveLength(1);
   });
 
-  test("the shipped dataset produces no risk finding on its own", async () => {
-    const scan = await scanOf({ "worker.ts": 'import cluster from "node:cluster";' });
-    const findings = runtimeBuiltinFindings(scan, collectNodeBuiltins(scan));
-    expect(findings.some((finding) => finding.severity === "risk")).toBe(false);
+  test("vendored gaps: a partial module is a risk, an unimplemented one is a blocker", async () => {
+    const dataset = readRuntimeDataset();
+    const partial = dataset.gaps.find((gap) => gap.status === "partial");
+    const unimplemented = dataset.gaps.find((gap) => gap.status === "unimplemented");
+    expect(partial).toBeDefined();
+    expect(unimplemented).toBeDefined();
+
+    const scan = await scanOf({
+      "a.ts": `import "node:${partial?.name}";\nimport "node:${unimplemented?.name}";`,
+    });
+    const gaps = runtimeBuiltinFindings(scan, collectNodeBuiltins(scan), dataset).filter(
+      (finding) => finding.id === "runtime/known-gap",
+    );
+    const severityFor = (name: string) =>
+      gaps.find((finding) => finding.title.startsWith(`${name} is`))?.severity;
+    expect(severityFor(partial?.name ?? "")).toBe("risk");
+    expect(severityFor(unimplemented?.name ?? "")).toBe("blocker");
   });
 
   test("a repository with no built-ins gets no inventory finding", async () => {

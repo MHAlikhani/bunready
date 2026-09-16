@@ -121,9 +121,11 @@ export function runtimeBuiltinFindings(
     if (usage === undefined) {
       continue;
     }
+    // A `partial` module usually still runs; an `unimplemented` module breaks
+    // on import with no user action, which is the blocker bar (D2).
     findings.push({
       id: GAP_ID,
-      severity: "risk",
+      severity: gap.status === "unimplemented" ? "blocker" : "risk",
       title: `${gap.name} is ${gap.status} in Bun and this project imports it`,
       detail: gap.note,
       evidence: `${usage.files.length} file(s), first at ${usage.files[0] ?? "unknown"}`,
