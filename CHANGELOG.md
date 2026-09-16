@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.2.0] - 2026-09-16
+
+### Added
+
+- **Sourced runtime gap dataset.** `src/rules/data/node-runtime.json` now carries
+  18 entries read from Bun's own Node.js compatibility table (17 `partial`,
+  1 `unimplemented`), each with the table as its primary source. A repository
+  importing a `partial` module gets a `risk`; an `unimplemented` one
+  (currently `node:sea`) is a `blocker`, because it breaks on import with no
+  user action.
+- **Real-project smoke script.** `bun run smoke` downloads the Next.js
+  hello-world example, the NestJS starter and turborepo's basic monorepo and
+  prints each scan's verdict, so a release is validated against real
+  repositories before it ships.
+- Decisions D41–D43 in `STATE.md` (optional-dependency severity, `node:`
+  prefix classification, the smoke script).
+
+### Fixed
+
+- **Optional dependencies no longer produce blockers.** A skipped install
+  script on an *optional* package (the `fsevents` false positive on the NestJS
+  starter) is now a `risk`: the installer tolerates an absent optional package
+  by design, so a skipped script cannot break the install itself.
+- **`node:`-prefixed imports are always classified as Node built-ins**, even
+  when the runtime's own `builtinModules` list lags behind Node (e.g.
+  `node:sea` is missing from Bun's list).
+- README no longer claims `--run` is unimplemented.
+
 ## [0.1.0] - 2026-09-09
 
 ### Added
