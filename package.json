@@ -1,6 +1,6 @@
 {
   "name": "@mh-alikhani/bunready",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Bun-readiness scanner: one command that shows what will break before you move a Node/TS repo to Bun.",
   "keywords": [
     "bun",
@@ -27,6 +27,12 @@
   "author": "Mohammad Hosein Alikhani",
   "type": "module",
   "private": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
   "bin": {
     "bunready": "./src/cli/index.ts"
   },
