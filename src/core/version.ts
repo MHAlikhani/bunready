@@ -1,4 +1,4 @@
-import packageJson from "../../package.json";
+import packageJson from "../../package.json" with { type: "json" };
 
 /**
  * Tool identity, in a module with no dependencies, so anything (CLI, scanner,

@@ -1,6 +1,6 @@
 import type { Finding } from "../../report/types";
 import { classifySpecifier, type SourceScan } from "../../scanner/sources";
-import runtimeDataset from "../data/node-runtime.json";
+import runtimeDataset from "../data/node-runtime.json" with { type: "json" };
 
 /**
  * Runtime-phase rule: what Node surface the repository actually depends on.

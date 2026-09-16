@@ -3,7 +3,7 @@ import type { DependencyGraph } from "../../scanner/graph";
 import { knownPackageNames } from "../../scanner/graph";
 import type { ParsedLockfile } from "../../scanner/lockfile";
 import type { TargetSnapshot } from "../../scanner/target";
-import nativeDataset from "../data/native-packages.json";
+import nativeDataset from "../data/native-packages.json" with { type: "json" };
 
 /**
  * Native-addon detection, in evidence order:

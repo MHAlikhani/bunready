@@ -1,6 +1,7 @@
 {
   "name": "@mh-alikhani/bunready",
   "version": "0.3.3",
+  "license": "MIT",
   "exports": {
     ".": "./src/index.ts"
   }
