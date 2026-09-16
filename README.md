@@ -93,7 +93,7 @@ permissions:
 
 steps:
   - uses: actions/checkout@v7
-  - uses: MHAlikhani/bunready@v0.1.0
+  - uses: MHAlikhani/bunready@v0.2.0
     with:
       path: .
 ```
