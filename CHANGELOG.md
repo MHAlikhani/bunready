@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.3.2] - 2026-09-20
+
+### Changed
+
+- Source files are read with bounded concurrency instead of one at a time. A scan
+  of 800 files went from a 200.9ms median to 86.2ms on Windows (un run bench),
+  with identical output.
+
+### Notes
+
+- Measured and rejected: --bytecode cannot compile the entry point because it
+  uses top-level wait, --minify produces a byte-identical 82.2MB binary (the
+  size is the Bun runtime), and deferring the scanner behind dynamic imports moved
+  the cost into the scan path without a repeatable win.
+
 ## [0.3.1] - 2026-09-19
 
 ### Fixed
@@ -201,7 +216,8 @@ Nothing yet.
   and that claim needs a primary source. Until then the rule reports what the
   repository imports and cites the compatibility table.
 
-[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.2
 [0.3.1]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.1
 [0.3.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.0
 [0.2.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.2.0
