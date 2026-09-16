@@ -28,9 +28,10 @@ Pre-alpha, and precise about it. `bunready <path>` reads `package.json`, any
 lockfile, and the repository's own imports, then prints a report with a verdict
 and an exit code CI can gate on.
 
-What it does not do yet: `--run` (executing the target's scripts under Bun) is
-accepted and reported as unimplemented, and no Node-runtime gap is claimed
-without a source. See [STATE.md](STATE.md) for what exists and what does not.
+`--run` goes further: it copies the target to a temporary directory, installs
+and boots it under Bun there, and reports the first real failure with timings.
+Every compatibility claim carries a source link, so you can check the
+underlying evidence yourself. See [STATE.md](STATE.md) for details.
 
 ## Install
 
@@ -61,7 +62,7 @@ bunx @mh-alikhani/bunready /path/to/node-project
 | `--help` | Print usage and exit. |
 | `--version` | Print the CLI version and exit. |
 | `--json` | Emit machine-readable JSON instead of the terminal report. |
-| `--run` | Planned: run the target's own scripts under Bun in a temporary copy. Not implemented yet; the flag says so before scanning. |
+| `--run [script]` | Copy the target to a temporary directory, `bun install` and run a script (default `start`) there under Bun, and report the first failure with timings. Never executes in place; a timeout is a `risk`, a pass is `info`. |
 | `NO_COLOR` | Environment variable: disable ANSI color when set. |
 
 Exit codes: `0` no blockers, `1` blockers found, `2` usage error.

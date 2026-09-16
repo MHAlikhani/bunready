@@ -57,6 +57,7 @@
     "build": "bun build ./src/cli/index.ts --target=bun --outdir=dist",
     "check": "bun run typecheck && bun run lint && bun run test",
     "og": "bun run scripts/generate-og-image.ts",
+    "smoke": "bun run scripts/smoke-real.ts",
     "prepare": "simple-git-hooks"
   },
   "devDependencies": {

@@ -9,8 +9,10 @@ Read this instead of the repository. Keep it under 120 lines.
 - Phase 0 (name gate + git bootstrap): **done**.
 - Phase 1 (brand + core scaffold): **done, verified**.
 - Phase 2 (dependency graph + install-phase rules + report): **done, verified**.
-- Phase 3 (runtime-phase rules): **import inventory done**; the sourced gap dataset
-  is empty by policy (D19).
+- Phase 3 (runtime-phase rules): **done** - the gap dataset was populated on
+  2026-09-16 from Bun's own compatibility table (17 partial, 1 unimplemented
+  entry, all with the table as source); `partial` is a `risk`, `unimplemented`
+  a `blocker`.
 - Phase 5 (CI/CD): **done** - CI and security are green on main and branch
   protection is enforced (verified by a rejected push).
 - Phase 6 (release pipeline): **done** - `release.yml`, SBOM, checksums and
@@ -75,6 +77,9 @@ action outside this repository (O10).
 | D38 | The Action uploads SARIF before it honours the scan's exit code | Otherwise code scanning would never see the findings of a failing run. |
 | D39 | The Action can run `version: local` | It is what lets CI test the action against this repository before the first publish. |
 | D40 | The npm package is `@mh-alikhani/bunready` | npm refuses the unscoped name: its normalised-name rule reports `bunready` as too similar to the existing `bun-ready` (the competitor). A scope keeps the repo, CLI name, action and brand intact, and npm suggested it. |
+| D41 | An **optional** dependency's skipped install script is a `risk`, never a `blocker` | The install tolerates an absent optional package by design, so a skipped script cannot break the install (the fsevents false positive on NestJS proved the rule). |
+| D42 | Any `node:`-prefixed import is a Node built-in regardless of the runtime's own module list | Bun's `builtinModules` omits modules Node has (e.g. `node:sea`); the prefix is unambiguous on its own. |
+| D43 | `bun run smoke` validates real projects (Next.js example, NestJS starter, turborepo basic) before a release | It is network-dependent and its subjects change upstream, so it stays out of CI on purpose. |
 
 ## Public interfaces
 
