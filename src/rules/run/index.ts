@@ -21,6 +21,7 @@ function megabytes(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))} MB`;
 }
 
+/** Turns the outcome of a run into findings. */
 export function runFindings(
   outcome: RunOutcome,
   options: RunOptions = DEFAULT_RUN_OPTIONS,

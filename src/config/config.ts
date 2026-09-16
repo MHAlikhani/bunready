@@ -7,11 +7,13 @@ import { SEVERITIES, type Severity } from "../rules/severity";
  */
 export const CONFIG_FILENAME = "bunready.config.json";
 
+/** Settings for the optional run phase. */
 export interface RunConfig {
   readonly script: string | undefined;
   readonly maxCopyMegabytes: number;
 }
 
+/** The parsed contents of the project's configuration file. */
 export interface BunreadyConfig {
   /** Finding ids to drop, e.g. `install/no-lockfile`. */
   readonly ignore: readonly string[];
@@ -26,6 +28,7 @@ export interface BunreadyConfig {
   readonly run: RunConfig;
 }
 
+/** Configuration used when the project has no config file. */
 export const DEFAULT_CONFIG: BunreadyConfig = {
   ignore: [],
   ignorePackages: [],
@@ -35,6 +38,7 @@ export const DEFAULT_CONFIG: BunreadyConfig = {
   run: { script: undefined, maxCopyMegabytes: 250 },
 };
 
+/** Copy limit before a project is refused as too large to run. */
 export const DEFAULT_MAX_COPY_MEGABYTES = 250;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -51,6 +55,7 @@ function configError(source: string, detail: string, hint: string): Result<Bunre
   return { ok: false, error: defineError("E_PARSE", `${source} ${detail}`, { hint }) };
 }
 
+/** Parses and validates configuration, returning errors instead of throwing. */
 export function parseConfig(text: string, source = CONFIG_FILENAME): Result<BunreadyConfig> {
   let raw: unknown;
   try {

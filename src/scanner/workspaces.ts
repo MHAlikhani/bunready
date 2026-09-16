@@ -23,11 +23,13 @@ export const WORKSPACE_EXCLUDES = [
 
 const MAX_DEPTH = 3;
 
+/** A workspace package: its directory and its manifest. */
 export interface WorkspacePackage {
   /** Directory relative to the workspace root, using forward slashes. */
   readonly relative: string;
 }
 
+/** Reads the workspace globs from package.json or pnpm-workspace.yaml. */
 export function workspacePatterns(manifest: Manifest, pnpmWorkspace: string | undefined): string[] {
   if (manifest.workspaces.length > 0) {
     return [...manifest.workspaces]
@@ -145,6 +147,7 @@ function stripTrailingSlashes(value: string): string {
   return value.slice(0, end);
 }
 
+/** Resolves workspace patterns to the packages they match. */
 export async function findWorkspacePackages(
   root: string,
   patterns: readonly string[],
@@ -177,6 +180,7 @@ export async function findWorkspacePackages(
   return [...found.values()].sort((a, b) => a.relative.localeCompare(b.relative));
 }
 
+/** Filename of the pnpm workspace file. */
 export const PNPM_WORKSPACE_FILENAME = "pnpm-workspace.yaml";
 
 /** Read and parse `pnpm-workspace.yaml`, if it is there. */

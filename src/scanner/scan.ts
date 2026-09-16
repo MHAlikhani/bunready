@@ -40,6 +40,7 @@ export function detectRuntime(): RuntimeInfo {
   return { bun: Bun.version, node: process.versions.node };
 }
 
+/** Options for scanning a target: configuration, runtime versions and paths. */
 export interface ScanOptions {
   readonly fs?: FileSystem;
   readonly runtime?: RuntimeInfo;

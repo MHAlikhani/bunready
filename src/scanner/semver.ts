@@ -27,6 +27,7 @@ type Disjunction = readonly Conjunction[];
 
 const VERSION_PATTERN = /^(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?$/;
 
+/** Parses a semantic version, ignoring any surrounding operator. */
 export function parseVersion(text: string): ParsedVersion | undefined {
   const cleaned = text.trim().replace(/^[=v]+/, "");
   const match = VERSION_PATTERN.exec(cleaned);
@@ -52,6 +53,7 @@ function writtenParts(text: string): number {
   );
 }
 
+/** Orders two parsed versions. */
 export function compareVersions(a: ParsedVersion, b: ParsedVersion): number {
   if (a.major !== b.major) {
     return a.major < b.major ? -1 : 1;
@@ -161,6 +163,7 @@ function comparatorsForToken(token: string): Comparator[] | undefined {
   return exact === undefined ? undefined : [{ operator: "=", version: exact }];
 }
 
+/** Parses a version range into its operator and version parts. */
 export function parseRange(range: string): Disjunction | undefined {
   const trimmed = range.trim();
   if (trimmed === "" || trimmed === "*" || trimmed === "latest") {
@@ -212,6 +215,7 @@ const COMPARATOR_TESTS: Readonly<Record<Operator, (order: number) => boolean>> =
   "=": (order) => order === 0,
 };
 
+/** Whether a version satisfies a range. */
 export function satisfies(candidate: string, range: string): boolean | undefined {
   const parsedRange = parseRange(range);
   const parsedVersion = parseVersion(candidate);

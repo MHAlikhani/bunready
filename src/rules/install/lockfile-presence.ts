@@ -13,6 +13,7 @@ const BINARY_LOCKFILE_ID = "install/binary-lockfile";
 const UNPARSED_LOCKFILE_ID = "install/unparsed-lockfile";
 const MULTIPLE_LOCKFILES_ID = "install/multiple-lockfiles";
 
+/** Reports lockfiles that are missing, unreadable or Bun-unfriendly. */
 export function lockfileFindings(snapshot: TargetSnapshot): Finding[] {
   const findings: Finding[] = [];
 

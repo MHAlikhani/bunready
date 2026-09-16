@@ -16,10 +16,12 @@ import type { TargetSnapshot } from "../../scanner/target";
  * facts; nothing is inferred from package names.
  */
 export const LIFECYCLE_DOC = "https://bun.com/docs/pm/lifecycle";
+/** Explains trustedDependencies, attached to lifecycle-script findings. */
 export const TRUSTED_DEPENDENCIES_GUIDE = "https://bun.com/guides/install/trusted";
 
 const ID = "install/lifecycle-script";
 
+/** Flags install scripts that will not run unless the package is trusted. */
 export function lifecycleScriptFindings(
   snapshot: TargetSnapshot,
   lockfile: ParsedLockfile | undefined,

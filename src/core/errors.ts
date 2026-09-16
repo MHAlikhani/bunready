@@ -19,24 +19,30 @@ export interface BunreadyError {
   readonly cause?: unknown;
 }
 
+/** A successful result. */
 export type Ok<T> = { readonly ok: true; readonly value: T };
+/** A failed result carrying an error. */
 export type Err = { readonly ok: false; readonly error: BunreadyError };
 
 /** Success or failure. Errors are values here, not control flow. */
 export type Result<T> = Ok<T> | Err;
 
+/** Wraps a value in a successful result. */
 export function ok<T>(value: T): Ok<T> {
   return { ok: true, value };
 }
 
+/** Wraps an error in a failed result. */
 export function err<T = never>(error: BunreadyError): Result<T> {
   return { ok: false, error };
 }
 
+/** Narrows a result to its success case. */
 export function isOk<T>(result: Result<T>): result is Ok<T> {
   return result.ok;
 }
 
+/** Narrows a result to its failure case. */
 export function isErr<T>(result: Result<T>): result is Err {
   return !result.ok;
 }

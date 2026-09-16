@@ -23,8 +23,10 @@ export const COPY_EXCLUDES = [
   ".cache",
 ] as const;
 
+/** Script names the run phase is willing to execute, in order of preference. */
 export const RUNNABLE_SCRIPTS = ["start", "test"] as const;
 
+/** Exit status and captured output of one child process. */
 export interface ProcessResult {
   readonly code: number | null;
   readonly stdout: string;
@@ -33,15 +35,18 @@ export interface ProcessResult {
   readonly durationMs: number;
 }
 
+/** Options for a single command invocation. */
 export interface RunCommandOptions {
   readonly cwd: string;
   readonly timeoutMs: number;
 }
 
+/** Runs a command; injected so tests need not spawn processes. */
 export interface CommandRunner {
   readonly run: (command: readonly string[], options: RunCommandOptions) => Promise<ProcessResult>;
 }
 
+/** What the run phase needs: a scratch directory and a way to run commands. */
 export interface RunEnvironment {
   readonly runner: CommandRunner;
   readonly makeTempDir: () => Promise<string>;
@@ -50,11 +55,13 @@ export interface RunEnvironment {
   readonly measureTreeBytes: (path: string) => Promise<number>;
 }
 
+/** A failure observed while running the project's scripts. */
 export interface RunFailure {
   readonly message: string;
   readonly frames: readonly string[];
 }
 
+/** What the run phase ended up doing, successful or not. */
 export interface RunOutcome {
   readonly workDir: string;
   readonly script: string | undefined;
@@ -67,6 +74,7 @@ export interface RunOutcome {
   readonly copyTooLarge: boolean;
 }
 
+/** Limits and toggles for the run phase. */
 export interface RunOptions {
   readonly installTimeoutMs: number;
   readonly scriptTimeoutMs: number;
@@ -75,6 +83,7 @@ export interface RunOptions {
   readonly script?: string;
 }
 
+/** The default run settings. */
 export const DEFAULT_RUN_OPTIONS: RunOptions = {
   installTimeoutMs: 180_000,
   scriptTimeoutMs: 120_000,
@@ -116,6 +125,7 @@ export function firstFailure(output: string): RunFailure | undefined {
   return { message: (lines[hinted] ?? "").trim(), frames: [] };
 }
 
+/** Chooses the script to run, when the project defines a runnable one. */
 export function pickScript(manifest: Manifest, requested?: string): string | undefined {
   if (requested !== undefined) {
     return typeof manifest.scripts[requested] === "string" ? requested : undefined;
@@ -123,10 +133,12 @@ export function pickScript(manifest: Manifest, requested?: string): string | und
   return RUNNABLE_SCRIPTS.find((name) => typeof manifest.scripts[name] === "string");
 }
 
+/** Whether a path is left out of the temporary copy the run phase works in. */
 export function isExcludedFromCopy(path: string): boolean {
   return (COPY_EXCLUDES as readonly string[]).includes(basename(path));
 }
 
+/** The CommandRunner that spawns commands with Bun. */
 export function bunCommandRunner(): CommandRunner {
   return {
     run: async (command, options) => {
@@ -189,6 +201,7 @@ async function treeBytes(path: string): Promise<number> {
   return total;
 }
 
+/** The real run environment: working directory, temp directory and runner. */
 export function systemRunEnvironment(): RunEnvironment {
   return {
     runner: bunCommandRunner(),
@@ -250,6 +263,7 @@ async function perform(
   };
 }
 
+/** Copies the project, installs, runs the chosen script and reports what happened. */
 export async function executeProject(
   dir: string,
   manifest: Manifest,

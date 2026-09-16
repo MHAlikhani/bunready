@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.3.4] - 2026-09-16
+
+### Changed
+
+- Every exported symbol carries a doc comment. JSR scores how much of a
+  package's exported surface is documented; this package was at 48% and
+  is now at 100%. Comments only - no behaviour changed.
+
+
 ## [0.3.3] - 2026-09-16
 
 ### Fixed
@@ -248,7 +257,8 @@ Nothing yet.
   and that claim needs a primary source. Until then the rule reports what the
   repository imports and cites the compatibility table.
 
-[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.4
 [0.3.3]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.3
 [0.3.2]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.2
 [0.3.1]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.1

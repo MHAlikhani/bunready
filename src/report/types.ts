@@ -29,6 +29,7 @@ export interface Finding {
   readonly hint?: string;
 }
 
+/** Overall judgement for a scan: blocked, risky or ready. */
 export type Verdict = "ready" | "risky" | "blocked";
 
 /** One scanned directory in a multi-package repository. */
@@ -110,6 +111,7 @@ export function sortFindings(findings: readonly Finding[]): Finding[] {
   });
 }
 
+/** The judgement a set of findings amounts to. */
 export function verdictFor(findings: readonly Finding[]): Verdict {
   let verdict: Verdict = "ready";
   for (const finding of findings) {

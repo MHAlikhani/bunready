@@ -11,27 +11,32 @@ import type { Finding } from "../report/types";
  */
 export const BASELINE_SCHEMA_VERSION = 1;
 
+/** A recorded set of known findings, keyed by fingerprint. */
 export interface Baseline {
   readonly schemaVersion: number;
   readonly findings: readonly string[];
 }
 
+/** What a baseline comparison found: new, known and fixed entries. */
 export interface BaselineSummary {
   readonly path: string;
   readonly known: number;
   readonly new: number;
 }
 
+/** Stable identity of a finding: its rule, package and path. */
 export function fingerprint(finding: Finding): string {
   return [finding.id, finding.package ?? "", finding.path ?? ""].join("|");
 }
 
+/** Renders a baseline in its on-disk JSON form. */
 export function serializeBaseline(findings: readonly Finding[]): string {
   const fingerprints = [...new Set(findings.map(fingerprint))].sort();
   const baseline: Baseline = { schemaVersion: BASELINE_SCHEMA_VERSION, findings: fingerprints };
   return `${JSON.stringify(baseline, null, 2)}\n`;
 }
 
+/** Reads a baseline file, reporting malformed input as an error. */
 export function parseBaseline(text: string, source: string): Result<Baseline> {
   let raw: unknown;
   try {

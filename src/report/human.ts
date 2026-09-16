@@ -22,6 +22,7 @@ function label(finding: Finding, theme: Theme): string {
   }
 }
 
+/** Renders a report for a terminal: findings by severity, then the verdict. */
 export function renderHumanReport(report: ScanReport, theme: Theme): string {
   const lines: string[] = [];
   const facts: string[] = [];

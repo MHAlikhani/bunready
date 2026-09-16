@@ -6,6 +6,7 @@ export interface Io {
   readonly isTty: boolean;
 }
 
+/** The real stdin, stdout and stderr, coloured when the terminal allows it. */
 export function systemIo(): Io {
   return {
     out: (line) => {

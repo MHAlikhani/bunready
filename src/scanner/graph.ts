@@ -14,6 +14,7 @@ export interface DependencyGraph {
   readonly duplicates: readonly DuplicateVersion[];
 }
 
+/** A dependency resolved to more than one version. */
 export interface DuplicateVersion {
   readonly name: string;
   readonly versions: readonly string[];

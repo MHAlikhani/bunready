@@ -17,6 +17,7 @@ const GAP_ID = "runtime/known-gap";
 const COVERAGE_ID = "runtime/scan-coverage";
 const MAX_LISTED_MODULES = 8;
 
+/** One row of the Node runtime gap dataset. */
 export interface RuntimeGapEntry {
   readonly name: string;
   readonly status: "partial" | "unimplemented";
@@ -24,11 +25,13 @@ export interface RuntimeGapEntry {
   readonly source: string;
 }
 
+/** The shipped dataset of Node runtime gaps, each with its source. */
 export interface RuntimeDataset {
   readonly compatibilityDocs: string | undefined;
   readonly gaps: readonly RuntimeGapEntry[];
 }
 
+/** A Node built-in the project imports, with where it is used. */
 export interface BuiltinUsage {
   readonly name: string;
   readonly files: readonly string[];
@@ -92,6 +95,7 @@ function normalise(name: string): string {
   return name.startsWith("node:") ? name.slice(5) : name;
 }
 
+/** Reports the Node built-ins the project's own code imports. */
 export function runtimeBuiltinFindings(
   scan: SourceScan,
   usages: readonly BuiltinUsage[],

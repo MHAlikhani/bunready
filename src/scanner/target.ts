@@ -25,18 +25,21 @@ export interface PackageEvidence {
   readonly installScripts: readonly string[];
 }
 
+/** A lockfile that was found and parsed. */
 export interface LoadedLockfile {
   readonly kind: LockfileKind;
   readonly path: string;
   readonly parsed: ParsedLockfile;
 }
 
+/** A lockfile that was found but could not be parsed. */
 export interface UnparsedLockfile {
   readonly kind: LockfileKind;
   readonly path: string;
   readonly message: string;
 }
 
+/** Everything read from one target directory: manifest, lockfiles, sources and config. */
 export interface TargetSnapshot {
   readonly dir: string;
   readonly manifestPath: string;
@@ -116,6 +119,7 @@ async function probeInstalledPackage(
   };
 }
 
+/** Reads a directory's manifest, lockfiles, sources and configuration. */
 export async function readTarget(
   dir: string,
   fs: FileSystem = nodeFileSystem(),

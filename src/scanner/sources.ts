@@ -23,6 +23,7 @@ export const SOURCE_EXTENSIONS = [
   ".cjs",
 ] as const;
 
+/** Directories the source walk never descends into. */
 export const IGNORED_DIRECTORIES = [
   "node_modules",
   ".git",
@@ -38,21 +39,26 @@ export const IGNORED_DIRECTORIES = [
   ".cache",
 ] as const;
 
+/** Cap on how many source files are read per target. */
 export const MAX_SOURCE_FILES = 2000;
 
+/** How a module was imported: static import, dynamic import or require. */
 export type ImportKind = "esm" | "cjs" | "dynamic";
 
+/** One import found in a file: its specifier, kind and line. */
 export interface ImportRef {
   readonly specifier: string;
   readonly kind: ImportKind;
   readonly line: number;
 }
 
+/** A source file read during the scan. */
 export interface SourceFile {
   readonly path: string;
   readonly imports: readonly ImportRef[];
 }
 
+/** What the walk found: files, imports, and whether the cap truncated it. */
 export interface SourceScan {
   readonly files: readonly SourceFile[];
   readonly filesScanned: number;
@@ -333,8 +339,10 @@ export function nodeBuiltinNames(): Set<string> {
   return names;
 }
 
+/** The categories an import specifier can fall into. */
 export type SpecifierKind = "node-builtin" | "bun-builtin" | "relative" | "absolute" | "package";
 
+/** Classifies an import specifier. */
 export function classifySpecifier(
   specifier: string,
   builtins: ReadonlySet<string> = nodeBuiltinNames(),
@@ -366,6 +374,7 @@ function hasSourceExtension(name: string): boolean {
   return SOURCE_EXTENSIONS.some((extension) => lower.endsWith(extension));
 }
 
+/** Limits for the source walk. */
 export interface ScanSourcesOptions {
   readonly maxFiles?: number;
   /** Substrings matched against each file path; a match skips the file. */

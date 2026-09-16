@@ -27,6 +27,7 @@ function worstByRule(
   return byRule;
 }
 
+/** Renders findings as SARIF 2.1.0 for code scanning. */
 export function renderSarifReport(report: ScanReport): string {
   const byRule = worstByRule(report.findings);
 

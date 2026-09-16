@@ -9,6 +9,7 @@
 
 export const SEVERITIES = ["blocker", "risk", "info"] as const;
 
+/** Severity levels, ordered from most to least serious. */
 export type Severity = (typeof SEVERITIES)[number];
 
 /** Lower rank sorts first: blockers surface above everything else. */
@@ -18,10 +19,12 @@ export const SEVERITY_RANK: Readonly<Record<Severity, number>> = {
   info: 2,
 };
 
+/** Orders severities for sorting, blockers first. */
 export function compareSeverity(a: Severity, b: Severity): number {
   return SEVERITY_RANK[a] - SEVERITY_RANK[b];
 }
 
+/** Counts findings per severity. */
 export function countBySeverity(
   severities: readonly Severity[],
 ): Readonly<Record<Severity, number>> {

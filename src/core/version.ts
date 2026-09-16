@@ -6,4 +6,5 @@ import packageJson from "../../package.json" with { type: "json" };
  */
 export const TOOL_NAME = "bunready";
 
+/** The tool's own version, used in reports. */
 export const TOOL_VERSION: string = packageJson.version;

@@ -17,6 +17,7 @@ export interface DirectoryEntry {
   readonly isDirectory: boolean;
 }
 
+/** The file operations the scanner needs, injected so tests can run in memory. */
 export interface FileSystem {
   readonly readTextFile: (path: string) => Promise<ReadOutcome>;
   readonly writeTextFile: (path: string, text: string) => Promise<void>;
@@ -28,6 +29,7 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** The FileSystem implementation backed by node:fs. */
 export function nodeFileSystem(): FileSystem {
   return {
     readTextFile: async (path) => {

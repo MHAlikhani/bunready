@@ -17,8 +17,10 @@ import { defineError, type Result } from "../core/errors";
 
 export const LOCKFILE_KINDS = ["bun", "npm", "yarn", "pnpm"] as const;
 
+/** The lockfile formats the scanner understands. */
 export type LockfileKind = (typeof LOCKFILE_KINDS)[number];
 
+/** Lockfile filenames, in the order they are preferred. */
 export const LOCKFILE_FILENAMES: Readonly<Record<LockfileKind, string>> = {
   bun: "bun.lock",
   npm: "package-lock.json",
@@ -26,6 +28,7 @@ export const LOCKFILE_FILENAMES: Readonly<Record<LockfileKind, string>> = {
   pnpm: "pnpm-lock.yaml",
 };
 
+/** One package as recorded by a lockfile. */
 export interface LockedPackage {
   readonly name: string;
   readonly version: string;
@@ -36,6 +39,7 @@ export interface LockedPackage {
   readonly installScript: boolean;
 }
 
+/** A parsed lockfile: its format, packages and direct dependencies. */
 export interface ParsedLockfile {
   readonly kind: LockfileKind;
   readonly lockfileVersion: string | undefined;
@@ -527,6 +531,7 @@ function parsePnpmLock(text: string, path: string): Result<ParsedLockfile> {
   return { ok: true, value: { kind: "pnpm", lockfileVersion, packages: sortPackages(collected) } };
 }
 
+/** Parses lockfile text into packages, or reports why it could not. */
 export function parseLockfile(
   kind: LockfileKind,
   text: string,

@@ -16,6 +16,7 @@ export interface CliOptions {
   readonly writeBaseline: string | undefined;
 }
 
+/** Directory scanned when no path argument is given. */
 export const DEFAULT_TARGET = ".";
 
 /**

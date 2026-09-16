@@ -8,16 +8,20 @@ import { TOOL_NAME } from "../core/version";
 import type { Verdict } from "../report/types";
 import type { Severity } from "../rules/severity";
 
+/** Product name as it appears in user-facing copy. */
 export const TOOL = TOOL_NAME;
 
+/** One-line positioning statement shown with the help text. */
 export const POSITIONING = "Know what breaks before you move a Node/TS repo to Bun.";
 
+/** Short tagline above the usage text. */
 export const TAGLINE = "One command. One honest verdict.";
 
 /** `--run` executes the target's code, so the help text has to say so plainly. */
 export const RUN_WARNING =
   "--run executes the target's code in a temporary copy; nothing runs in place and every command is timed";
 
+/** Full help text: usage, options and exit codes. */
 export function helpText(version: string): string {
   return [
     `${TOOL} ${version}`,

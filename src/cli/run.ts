@@ -12,10 +12,14 @@ import { helpText, RUN_WARNING, TOOL } from "./copy";
 import { type Io, systemIo } from "./io";
 import { colorEnabled, createTheme } from "./theme";
 
+/** Exit code for a scan with nothing at or above the failure threshold. */
 export const EXIT_OK = 0;
+/** Exit code for findings at or above the failure threshold. */
 export const EXIT_BLOCKERS = 1;
+/** Exit code for a usage error or an incomplete scan. */
 export const EXIT_USAGE = 2;
 
+/** The tool version, as reported by --version. */
 export function version(): string {
   return TOOL_VERSION;
 }

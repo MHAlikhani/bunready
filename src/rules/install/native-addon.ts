@@ -23,6 +23,7 @@ export interface NativePackageEntry {
   readonly source: string;
 }
 
+/** The build-tool packages the native-addon rule recognises. */
 export const BUILD_TOOL_PACKAGES = [
   "node-gyp",
   "node-pre-gyp",
@@ -56,6 +57,7 @@ export function readDataset(raw: unknown = nativeDataset): NativePackageEntry[] 
   return entries;
 }
 
+/** Flags native addons that need a compiler toolchain. */
 export function nativeAddonFindings(
   snapshot: TargetSnapshot,
   graph: DependencyGraph,

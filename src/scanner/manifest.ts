@@ -68,6 +68,7 @@ function readTrustedDependencies(value: unknown): string[] {
   return [];
 }
 
+/** Reads package.json, reporting malformed JSON as an error. */
 export function parseManifest(text: string, source: string): Result<Manifest> {
   let parsed: unknown;
   try {

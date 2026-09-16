@@ -17,6 +17,7 @@ export interface Theme {
 
 const identity = (text: string): string => text;
 
+/** Decides whether a stream's output should be coloured. */
 export function colorEnabled(
   env: Readonly<Record<string, string | undefined>>,
   isTty: boolean,
@@ -30,6 +31,7 @@ export function colorEnabled(
   return isTty;
 }
 
+/** Builds the colour palette used by the human-readable report. */
 export function createTheme(enabled: boolean): Theme {
   if (!enabled) {
     return {
