@@ -1,6 +1,115 @@
 {
-  "datasetVersion": "2026-09-15.1",
+  "datasetVersion": "2026-09-16.1",
   "compatibilityDocs": "https://bun.com/docs/runtime/nodejs-compat",
-  "note": "Runtime compatibility data. `gaps` is intentionally EMPTY: every entry here asserts that a specific Node built-in is partial or missing, and that claim needs a primary source that was read, not remembered. Bun's own position is that a package working in Node.js and failing in Bun is a bug in Bun, so a module is only listed once a specific issue or documentation entry establishes the gap. Until then bunready reports what the repository imports and points at the compatibility table instead of guessing.",
-  "gaps": []
+  "note": "Runtime compatibility data. Every entry below was read from Bun's own Node.js compatibility table (the `source` URL); see docs/adr/0001-data-source-policy.md. `status: partial` means part of the module's surface is missing; `status: unimplemented` means importing/using it fails outright.",
+  "gaps": [
+    {
+      "name": "sea",
+      "status": "unimplemented",
+      "note": "Single-executable applications are not implemented in Bun; Bun documents `bun build --compile` as the replacement.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "async_hooks",
+      "status": "partial",
+      "note": "AsyncLocalStorage and AsyncResource work; createHook and related are stubs with async ids always 0, and context does not propagate into MessagePort/BroadcastChannel/Worker events.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "child_process",
+      "status": "partial",
+      "note": "IPC handles net/dgram sockets but not http server sockets; 'advanced' serialization only works between Bun processes; channel.ref()/unref() are missing.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "cluster",
+      "status": "partial",
+      "note": "net/dgram sharing works as in Node; HTTP load-balancing across processes works only on Linux via SO_REUSEPORT and is not battle-tested.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "crypto",
+      "status": "partial",
+      "note": "BoringSSL-backed: ed448, x448, rsa-pss, dsa, dh, ML-KEM-512, secp256k1 and several ciphers are unavailable; encapsulate/decapsulate are missing; setEngine() throws and setFips() is a no-op.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "diagnostics_channel",
+      "status": "partial",
+      "note": "channel(), subscribe(), tracingChannel() and the http/http2/dgram channels work; boundedChannel() and several built-in channels are missing, and subscribers do not keep a Channel alive.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "domain",
+      "status": "partial",
+      "note": "Only synchronous errors are caught in run()/bind() or by emitters added with add(); asynchronous errors are not routed to the domain.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "https",
+      "status": "partial",
+      "note": "request, get, Agent and globalAgent are implemented with pooling; https.Server is http.Server with TLS options and lacks getPeerCertificate(), getCipher(), setSecureContext(), SNICallback and handshakeTimeout.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "inspector",
+      "status": "partial",
+      "note": "Session supports Profiler, Runtime.enable and NodeTracing; Debugger commands are forwarded but results are not returned; Runtime.evaluate and HeapProfiler are unimplemented and there is no Network domain.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "module",
+      "status": "partial",
+      "note": "Module#load(), registerHooks, findPackageJSON, stripTypeScriptTypes and source-map support APIs are missing; some methods are no-ops.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "perf_hooks",
+      "status": "partial",
+      "note": "monitorEventLoopDelay, createHistogram, timerify and PerformanceObserver are implemented; gc/dns/resource entries are never emitted and eventLoopUtilization() returns zeros.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "process",
+      "status": "partial",
+      "note": "process.binding is only partially available; setting process.title is a no-op on macOS/Linux; several methods return empty arrays; sourceMapsEnabled and addUncaughtExceptionCaptureCallback are missing.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "repl",
+      "status": "partial",
+      "note": "Mostly implemented via bun --interactive; there are no result previews and tab-completion skips let/const/class bindings.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "test",
+      "status": "partial",
+      "note": "The in-process API works under bun test; run() is limited and reporters, snapshots, coverage, --test-only and the CLI runner mode are missing.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "tls",
+      "status": "partial",
+      "note": "pskCallback, OCSP stapling and cross-process session resumption are missing; renegotiate() always fails because the TLS layer is BoringSSL.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "v8",
+      "status": "partial",
+      "note": "Heap snapshots/statistics and GCProfiler are implemented; serialize/deserialize use JSC's wire format; queryObjects, CPU/heap profiles, Serializer/Deserializer and promiseHooks are missing.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "wasi",
+      "status": "partial",
+      "note": "args, env, preopens, wasiImport and start() work; getImportObject(), initialize() and sock_accept are missing and several options are ignored.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "worker_threads",
+      "status": "partial",
+      "note": "resourceLimits and trackUnmanagedFds are ignored; some execArgv flags are only partly applied; moveMessagePortToContext and locks are missing.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    }
+  ]
 }

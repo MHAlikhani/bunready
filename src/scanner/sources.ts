@@ -270,7 +270,9 @@ export function classifySpecifier(
   if (specifier.startsWith("bun:")) {
     return "bun-builtin";
   }
-  if (builtins.has(specifier)) {
+  // A `node:` prefix is unambiguous even when the runtime's own module list
+  // lags behind Node (e.g. node:sea is absent from Bun's builtinModules).
+  if (specifier.startsWith("node:") || builtins.has(specifier)) {
     return "node-builtin";
   }
   if (
