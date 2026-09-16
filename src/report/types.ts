@@ -88,7 +88,13 @@ export interface ScanReport {
   readonly baseline?: BaselineSummary;
 }
 
-/** Blockers first, then risks, then info; stable within a severity. */
+/**
+ * The single ordering authority for findings: blockers first, then risks, then
+ * info; within a severity by rule id, then title, then the directory it came
+ * from. The tiebreakers make the order *total*, so the same repository produces
+ * byte-identical output however the findings were collected - which is what a
+ * diff in a pull request or a baseline comparison depends on.
+ */
 export function sortFindings(findings: readonly Finding[]): Finding[] {
   return [...findings].sort((a, b) => {
     const bySeverity = compareSeverity(a.severity, b.severity);
@@ -96,7 +102,11 @@ export function sortFindings(findings: readonly Finding[]): Finding[] {
       return bySeverity;
     }
     const byId = a.id.localeCompare(b.id);
-    return byId !== 0 ? byId : a.title.localeCompare(b.title);
+    if (byId !== 0) {
+      return byId;
+    }
+    const byTitle = a.title.localeCompare(b.title);
+    return byTitle !== 0 ? byTitle : (a.path ?? "").localeCompare(b.path ?? "");
   });
 }
 

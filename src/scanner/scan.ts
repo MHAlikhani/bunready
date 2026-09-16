@@ -75,6 +75,7 @@ async function scanOne(
   configPath: string | undefined,
   skipConfigDiscovery: boolean,
   rootConfig: TargetSnapshot["config"],
+  extraExcludePaths: readonly string[] = [],
 ): Promise<Result<TargetResult>> {
   const target = await readTarget(dir, fs, configPath, skipConfigDiscovery);
   if (!target.ok) {
@@ -84,7 +85,9 @@ async function scanOne(
   // One configuration governs the whole scan; a package's own file is ignored.
   const snapshot: TargetSnapshot = { ...target.value, config: rootConfig };
   const graph = buildGraph(snapshot.manifest, snapshot.lockfiles[0]?.parsed);
-  const sources = await scanSources(dir, fs, { excludePaths: rootConfig.excludePaths });
+  const sources = await scanSources(dir, fs, {
+    excludePaths: [...rootConfig.excludePaths, ...extraExcludePaths],
+  });
   const usages = collectNodeBuiltins(sources);
 
   const findings = [
@@ -176,7 +179,20 @@ export async function scanTarget(
 
   const targets: TargetResult[] = [];
 
-  const rootScan = await scanOne(dir, ".", "root", fs, runtime, options.configPath, false, config);
+  // The root's walk skips the packages: each one is scanned as its own target,
+  // and descending into them from the root spent the file budget on files that
+  // were about to be read a second time.
+  const rootScan = await scanOne(
+    dir,
+    ".",
+    "root",
+    fs,
+    runtime,
+    options.configPath,
+    false,
+    config,
+    packages.map((pkg) => `${pkg.relative}/`),
+  );
   if (!rootScan.ok) {
     return { ok: false, error: rootScan.error };
   }
@@ -271,16 +287,23 @@ export async function scanTarget(
   );
   const counts = countBySeverity(findings.map((finding) => finding.severity));
 
+  // Per-target verdicts are computed from the findings that survived config
+  // filtering, so a package can never say "blocked" while the overall report
+  // says "ready" because the blocker was ignored.
   const scannedTargets: readonly ScannedTarget[] =
     targets.length > 1
-      ? targets.map((target) => ({
-          path: target.dir,
-          relative: target.relative,
-          kind: target.kind,
-          name: target.name,
-          verdict: verdictFor(target.findings),
-          counts: countBySeverity(target.findings.map((finding) => finding.severity)),
-        }))
+      ? targets.map((target) => {
+          const normalized = target.dir.replace(/\\/g, "/");
+          const own = findings.filter((finding) => finding.path === normalized);
+          return {
+            path: target.dir.replace(/\\/g, "/"),
+            relative: target.relative,
+            kind: target.kind,
+            name: target.name,
+            verdict: verdictFor(own),
+            counts: countBySeverity(own.map((finding) => finding.severity)),
+          };
+        })
       : [];
 
   const builtinNames = new Set(targets.flatMap((target) => target.builtinNames));
@@ -292,7 +315,7 @@ export async function scanTarget(
       failOn: config.failOn,
       tool: TOOL_NAME,
       version: TOOL_VERSION,
-      target: dir,
+      target: dir.replace(/\\/g, "/"),
       verdict: verdictFor(findings),
       counts,
       findings,

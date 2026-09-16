@@ -86,51 +86,82 @@ const STATEMENT_PATTERNS: readonly { kind: ImportKind; pattern: RegExp }[] = [
  * Replace the contents of strings and comments with spaces, preserving every
  * offset and newline.
  *
- * Without this, a test fixture that contains the text `import cluster from
- * "node:cluster"` inside a string literal was counted as a real import. Masking
- * keeps offsets aligned, so specifiers are read from the original text at the
- * position the anchor matched.
+ * Template literals are the interesting case: the literal text is still text,
+ * but a \`\${ ... }\` interpolation is real code and may contain imports, so the
+ * expression is scanned while the surrounding literal stays masked. Without
+ * this, \`\${require("node:fs")}\` counted as nothing, and string fixtures that
+ * merely contained import-shaped text were counted as imports.
  */
 export function maskNonCode(text: string): string {
   const out: string[] = [];
-  type Mode = "code" | "single" | "double" | "template" | "line" | "block";
-  let mode: Mode = "code";
+  type Frame =
+    | { readonly kind: "code"; readonly depth: number }
+    | { readonly kind: "string"; readonly quote: string }
+    | { readonly kind: "template" }
+    | { readonly kind: "line" }
+    | { readonly kind: "block" };
+  const frames: Frame[] = [{ kind: "code", depth: 0 }];
   let index = 0;
 
   const blank = (char: string): string => (char === "\n" ? "\n" : " ");
+  const top = (): Frame => frames[frames.length - 1] ?? { kind: "code", depth: 0 };
 
   while (index < text.length) {
     const char = text[index] ?? "";
     const next = text[index + 1] ?? "";
+    const frame = top();
 
-    if (mode === "code") {
+    if (frame.kind === "code") {
       if (char === "/" && next === "/") {
-        mode = "line";
+        frames.push({ kind: "line" });
         out.push("  ");
         index += 2;
         continue;
       }
       if (char === "/" && next === "*") {
-        mode = "block";
+        frames.push({ kind: "block" });
         out.push("  ");
         index += 2;
         continue;
       }
-      if (char === "'") {
-        mode = "single";
-      } else if (char === '"') {
-        mode = "double";
-      } else if (char === "`") {
-        mode = "template";
+      if (char === '"' || char === "'") {
+        frames.push({ kind: "string", quote: char });
+        out.push(char);
+        index += 1;
+        continue;
+      }
+      if (char === "`") {
+        frames.push({ kind: "template" });
+        out.push(char);
+        index += 1;
+        continue;
+      }
+      if (char === "{") {
+        frames[frames.length - 1] = { kind: "code", depth: frame.depth + 1 };
+        out.push(char);
+        index += 1;
+        continue;
+      }
+      if (char === "}") {
+        const parent = frames[frames.length - 2];
+        if (frame.depth === 0 && parent?.kind === "template") {
+          // The interpolation ended: back inside the template literal.
+          frames.pop();
+        } else {
+          frames[frames.length - 1] = { kind: "code", depth: Math.max(0, frame.depth - 1) };
+        }
+        out.push(char);
+        index += 1;
+        continue;
       }
       out.push(char);
       index += 1;
       continue;
     }
 
-    if (mode === "line") {
+    if (frame.kind === "line") {
       if (char === "\n") {
-        mode = "code";
+        frames.pop();
         out.push("\n");
       } else {
         out.push(" ");
@@ -139,9 +170,9 @@ export function maskNonCode(text: string): string {
       continue;
     }
 
-    if (mode === "block") {
+    if (frame.kind === "block") {
       if (char === "*" && next === "/") {
-        mode = "code";
+        frames.pop();
         out.push("  ");
         index += 2;
         continue;
@@ -151,16 +182,39 @@ export function maskNonCode(text: string): string {
       continue;
     }
 
-    const quote = mode === "single" ? "'" : mode === "double" ? '"' : "`";
+    if (frame.kind === "string") {
+      if (char === "\\") {
+        out.push("  ");
+        index += 2;
+        continue;
+      }
+      if (char === frame.quote) {
+        frames.pop();
+        out.push(char);
+        index += 1;
+        continue;
+      }
+      out.push(blank(char));
+      index += 1;
+      continue;
+    }
+
+    // Template body: masked, except that ${ opens a code frame again.
     if (char === "\\") {
       out.push("  ");
       index += 2;
       continue;
     }
-    if (char === quote) {
-      mode = "code";
+    if (char === "`") {
+      frames.pop();
       out.push(char);
       index += 1;
+      continue;
+    }
+    if (char === "$" && next === "{") {
+      frames.push({ kind: "code", depth: 0 });
+      out.push("${");
+      index += 2;
       continue;
     }
     out.push(blank(char));
@@ -200,19 +254,36 @@ function readQuoted(text: string, from: number): string | undefined {
   return value === "" ? undefined : value;
 }
 
-function lineOf(text: string, index: number): number {
-  let line = 1;
-  for (let cursor = 0; cursor < index && cursor < text.length; cursor += 1) {
-    if (text[cursor] === "\n") {
-      line += 1;
+/** Newline offsets for one file, computed once and searched per match. */
+function newlinePositions(text: string): number[] {
+  const positions: number[] = [];
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] === "\n") {
+      positions.push(index);
     }
   }
-  return line;
+  return positions;
+}
+
+/** 1-based line for an offset, by binary search over the newline positions. */
+function lineAt(positions: readonly number[], index: number): number {
+  let low = 0;
+  let high = positions.length;
+  while (low < high) {
+    const mid = (low + high) >> 1;
+    if ((positions[mid] ?? 0) < index) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return low + 1;
 }
 
 function collect(
   masked: string,
   original: string,
+  newlines: readonly number[],
   pattern: RegExp,
   kind: ImportKind,
   into: ImportRef[],
@@ -222,17 +293,18 @@ function collect(
     if (specifier === undefined) {
       continue;
     }
-    into.push({ specifier, kind, line: lineOf(original, match.index) });
+    into.push({ specifier, kind, line: lineAt(newlines, match.index) });
   }
 }
 
 /** Extract every import/require specifier in one file's text. */
 export function extractImports(text: string): ImportRef[] {
   const masked = maskNonCode(text);
+  const newlines = newlinePositions(text);
   const refs: ImportRef[] = [];
 
   for (const { kind, pattern } of STATEMENT_PATTERNS) {
-    collect(masked, text, pattern, kind, refs);
+    collect(masked, text, newlines, pattern, kind, refs);
   }
 
   const seen = new Set<string>();
@@ -365,12 +437,14 @@ export async function scanSources(
       if (!hasSourceExtension(entry.name)) {
         continue;
       }
-      if (candidates.length >= maxFiles) {
-        truncated = true;
+      const path = join(current, entry.name).replace(/\\/g, "/");
+      // Excluded before the budget is spent: a file the caller asked us to skip
+      // must not be what makes the scan report itself as truncated.
+      if (excludePaths.some((fragment) => path.includes(fragment))) {
         continue;
       }
-      const path = join(current, entry.name).replace(/\\/g, "/");
-      if (excludePaths.some((fragment) => path.includes(fragment))) {
+      if (candidates.length >= maxFiles) {
+        truncated = true;
         continue;
       }
       candidates.push(path);
