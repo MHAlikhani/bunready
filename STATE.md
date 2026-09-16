@@ -156,16 +156,11 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 - **O3** `--run` design undecided: temp-dir strategy, `--no-network`, cleanup on
   failure (phase 4).
 - **O4** Duplicate versions are in `ScanReport.stats` but not yet a finding.
-- **O5** Scanning bunready itself exits 1: `simple-git-hooks` declares a
-  `postinstall` and is not in `trustedDependencies`.
-- **O6** `--json` has no schema version field. Add one before CI parses it.
 - **O7** `node-runtime.json` ships an empty `gaps` list: entries need a primary
   source that is actually read.
 - **O8** The source walk includes `tests/`; large fixtures may want an exclude list.
 - **O9** Two Dependabot PRs (codeql-action init/analyze to v4) fail their own
   security run. Triage: hold at v3, or adapt the workflow for v4.
-- **O10** `release.yml` needs npm trusted publishing configured on npmjs.com
-  (owner action) before the first publish can use OIDC without a token.
 
 - **O5** *resolved*: `simple-git-hooks` is trusted, so the install script runs and
   the finding is informational. Self-scan exits 0.

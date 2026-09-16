@@ -250,7 +250,6 @@ Nothing yet.
 
 [Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.3...HEAD
 [0.3.3]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.3
-[0.3.3]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.3
 [0.3.2]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.2
 [0.3.1]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.1
 [0.3.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.0
