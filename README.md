@@ -1,6 +1,10 @@
 <div align="center">
 
-<img src="docs/brand/logo.svg" alt="bunready" width="360">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/brand/logo.svg">
+  <img src="docs/brand/logo-auto.svg" alt="bunready" width="360">
+</picture>
 
 **One command that tells you what will break before you move a Node/TS repo to Bun — and gives you one clear verdict.**
 

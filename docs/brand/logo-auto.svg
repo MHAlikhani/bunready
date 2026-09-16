@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 120" width="340" height="120" role="img" aria-label="bunready">
+  <title>bunready</title>
+  <!--
+    One lockup that follows the reader's colour scheme. The light palette is
+    baked into the shapes so that a sanitizer which strips <style> (some
+    registries do) still renders a legible mark; the media query only overrides
+    for dark. Prefer .svg light/dark pairs with <picture> when the host supports
+    it, and this file when it does not.
+  -->
+  <style>
+    .ring { stroke: #a85b2b; }
+    .glyph { stroke: #171a1f; }
+    .wordmark { fill: #171a1f; }
+    @media (prefers-color-scheme: dark) {
+      .ring { stroke: #e0a268; }
+      .glyph { stroke: #f2f1ec; }
+      .wordmark { fill: #f2f1ec; }
+    }
+  </style>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect class="ring" x="34" y="34" width="52" height="52" rx="15" stroke-width="3"/>
+    <path class="glyph" d="M53 49 L68 60 L53 71" stroke-width="4.5"/>
+    <path class="glyph" d="M54 77 H68" stroke-width="4.5"/>
+  </g>
+  <text class="wordmark" x="108" y="76"
+        font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="42" font-weight="620" letter-spacing="-1">bunready</text>
+</svg>

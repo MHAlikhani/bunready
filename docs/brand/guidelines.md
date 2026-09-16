@@ -28,6 +28,7 @@ own: every severity also prints as a word.
 | --- | --- |
 | `docs/brand/logo.svg` | Default lockup, light backgrounds. |
 | `docs/brand/logo-dark.svg` | Lockup on dark backgrounds. |
+| `docs/brand/logo-auto.svg` | Theme-aware lockup: follows `prefers-color-scheme` itself. Used where `<picture>` is stripped, and as the README fallback. |
 | `docs/brand/logo-mono.svg` | Single-colour lockup; inherits `currentColor`. |
 | `docs/brand/mark.svg` | Mark alone; inherits `currentColor`. |
 | `docs/brand/favicon.svg` | Favicon: mark on ink, tuned for 16px. |
@@ -38,6 +39,7 @@ square: "you are about to run something".
 
 **Clear space:** 0.5 x the mark height on all four sides. Nothing enters it.
 **Minimum sizes:** mark 24px; lockup 120px wide.
+**Colour scheme:** every lockup must stay legible on both `#FBFAF7` and `#131519`. Where the host supports it, serve `logo.svg` / `logo-dark.svg` through `<picture>` with `prefers-color-scheme`; otherwise serve `logo-auto.svg`, which switches itself. Never ship the light lockup into a dark-only context.
 **Never:** recolour outside `tokens.json`, stretch, rotate, add effects,
 place the lockup on a busy photo, or crop the mark's rounded square.
 
