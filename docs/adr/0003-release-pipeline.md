@@ -34,7 +34,7 @@ mint an OIDC token.
   the trusted publisher on npmjs.com (recorded as O10 in STATE.md). Until that is
   done, the publish job fails closed rather than publishing anonymously.
 - Binaries are unsigned. Users on macOS and Windows will see the usual warnings;
-  code signing is deliberately out of scope for `v0.1.0`.
+  code signing is deliberately out of scope for now.
 - The SBOM inherits the lockfile parser's correctness. That is intentional: the
   same parser produces the scanner's dependency graph, so a parser bug shows up
   in both places instead of hiding in one.

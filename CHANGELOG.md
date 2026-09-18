@@ -55,13 +55,13 @@ Nothing yet.
 ### Changed
 
 - Source files are read with bounded concurrency instead of one at a time. A scan
-  of 800 files went from a 200.9ms median to 86.2ms on Windows (un run bench),
+  of 800 files went from a 200.9ms median to 86.2ms on Windows (bun run bench),
   with identical output.
 
 ### Notes
 
 - Measured and rejected: --bytecode cannot compile the entry point because it
-  uses top-level wait, --minify produces a byte-identical 82.2MB binary (the
+  uses top-level await, --minify produces a byte-identical 82.2MB binary (the
   size is the Bun runtime), and deferring the scanner behind dynamic imports moved
   the cost into the scan path without a repeatable win.
 

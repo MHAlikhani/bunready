@@ -16,7 +16,8 @@ Read this instead of the repository. Keep it under 120 lines.
 - Phase 5 (CI/CD): **done** - CI and security are green on main and branch
   protection is enforced (verified by a rejected push).
 - Phase 6 (release pipeline): **done** - `release.yml`, SBOM, checksums and
-  `docs/RELEASING.md`. The `v0.1.0` tag is blocked on O10 (npm trusted publishing).
+  `docs/RELEASING.md`. npm trusted publishing (O10) must be configured before
+the next tag so releases publish with provenance.
 - Phase 4 (`--run`): **done** - the target is copied to a temporary directory,
   installed and booted there, and the first real failure is reported.
 - Owner brief (v0.1.0 readiness): config file, `--json` schema version, SARIF,
@@ -135,13 +136,14 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 | Secret scanning | gitleaks | success |
 | Code scanning | CodeQL | success |
 | Dependency audit | `bun audit` | success |
-| Branch protection | rejected push to main | `protected branch hook declined`, 9 checks required |
+| Branch protection | rejected push to main | `protected branch hook declined`, 11 checks required (contexts corrected to the real CI check names) |
 | Compiled binary | `bun build --compile` locally | 86 MB exe, `--version` prints 0.1.0 |
 | SBOM / checksums | `bun run scripts/…` | see tests; format asserted against the known SHA-256 of `abc` |
 | Tests after phase 4 | `bun test --coverage` | 170 pass, 98.72% lines |
 | `--run` end to end | `bun run src/cli/index.ts <fixture> --run` | see the phase 4 commit; the fixture's failing script produced a blocker with its stack frame |
 | Workflow YAML | `python3 -c "yaml.safe_load(...)"` on all three | all parse; a new CI job enforces it |
 | Owner-brief slice | `bun test --coverage` | 201 pass, 98.53% lines |
+| After the doc/action fixes (0.3.4) | `bun test` | 264 pass / 0 fail across 32 files |
 | Self scan | `bun run src/cli/index.ts .` | **exit 0** (O5 resolved via `trustedDependencies`) |
 | SARIF | `bun run src/cli/index.ts . --sarif` | SARIF 2.1.0, 2 rules / 2 results |
 | Workspaces + baseline + action slice | `bun test --coverage` | 239 pass, 98.87% lines |
@@ -172,29 +174,21 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 - **O13** *resolved*: baseline/regression detection and `action.yml` ship.
 - **O14** Changed-only scanning (diff against a git ref) is not implemented;
   `--scope` selects packages, not changes.
-- **O15** The Action's `version: latest` needs the npm publish (O10);
-  `version: local` works today and is what CI exercises.
+- **O15** *resolved*: the package is published; the Action's `version: latest`
+  resolves and `version: local` is what CI exercises.
 
-- **O10** npm trusted publishing is not configured; the first release was
-  published from a logged-in workstation instead. Configure the trusted
-  publisher on npmjs.com (repository `MHAlikhani/bunready`, workflow
-  `release.yml`) so later tags publish with provenance and no local credentials.
+- **O10** *resolved*: npm trusted publishing is configured; every release since
+  0.3.0 carries provenance attestations.
 - **O17** The unscoped npm name is not available to us: `npm publish bunready`
   is refused as too similar to `bun-ready`, even though `npm view bunready`
   returns 404. An appeal to npm support is the only route to it, and it is
   optional now that D40 publishes a scoped package.
-- **O16** GitHub Marketplace listing needs one manual step: the release exists
-  and `action.yml` carries `branding`, but a listing requires accepting the
-  Marketplace Developer Agreement and 2FA in the repository UI.
+- **O16** *resolved*: the action is listed on the GitHub Marketplace.
 
-- **O18** The GitHub social preview image needs one manual upload (repository
-  Settings -> General -> Social preview). `assets/og.png` is already 1200x630 and
-  committed; GitHub exposes no API for it.
-- **O19** The improved npm keywords apply from the next release: the published
-  0.1.0 keeps the metadata it was packed with.
+- **O18** *resolved*: the social preview image is uploaded (repository-images
+  serves the custom asset).
+- **O19** *resolved*: the improved npm keywords shipped with the 0.3.4 metadata.
 
 ## Next action
 
-1. Publish the Marketplace listing for the action (O16).
-2. Configure npm trusted publishing (O10) before the next release.
-3. Changed-only scanning for monorepos (O14).
+1. Changed-only scanning for monorepos (O14).

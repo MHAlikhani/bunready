@@ -1,15 +1,14 @@
 # 30-second demo
 
 The GIF this script produces is **not** committed here: it is recorded from the
-real binary, never mocked up. Until the scanner engine lands (phases 2-3) there
-is nothing honest to record, so this file is the shot list and the exact
-commands.
+real binary, never mocked up: every output below is real. This file is the
+shot list and the exact commands.
 
 ## Preconditions
 
 ```sh
 bun install
-bun run src/cli/index.ts --version   # prints: bunready 0.1.0
+bun run src/cli/index.ts --version   # prints: bunready 0.3.4
 ```
 
 Recording: 1200x700, 30fps, ~14s of content cut to a 30s budget, no fake

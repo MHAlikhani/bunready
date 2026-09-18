@@ -8,7 +8,7 @@ can be piped straight into `jq` or a CI step.
   "schemaVersion": 1,          // bumped only for a breaking change
   "failOn": "blocker",         // the threshold that decides the exit code
   "tool": "bunready",
-  "version": "0.1.0",
+  "version": "0.3.4",
   "target": "/path/to/repo",
   "verdict": "blocked",        // ready | risky | blocked
   "counts": { "blocker": 1, "risk": 0, "info": 1 },
