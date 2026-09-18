@@ -14,6 +14,7 @@ import runtimeDataset from "../data/node-runtime.json" with { type: "json" };
  */
 const INVENTORY_ID = "runtime/node-builtins";
 const GAP_ID = "runtime/known-gap";
+const GLOBAL_GAP_ID = "runtime/known-global-gap";
 const COVERAGE_ID = "runtime/scan-coverage";
 const MAX_LISTED_MODULES = 8;
 
@@ -29,6 +30,15 @@ export interface RuntimeGapEntry {
 export interface RuntimeDataset {
   readonly compatibilityDocs: string | undefined;
   readonly gaps: readonly RuntimeGapEntry[];
+  /** Node globals (not modules) whose compatibility the table records. */
+  readonly globalGaps?: readonly RuntimeGapEntry[];
+}
+
+/** Every identifier the dataset watches for, so the scan can locate them. */
+export function datasetIdentifiers(dataset: RuntimeDataset): string[] {
+  return [...new Set((dataset.globalGaps ?? []).map((gap) => gap.name))].sort((a, b) =>
+    a.localeCompare(b),
+  );
 }
 
 /** A Node built-in the project imports, with where it is used. */
@@ -44,29 +54,33 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** Validate the vendored dataset instead of trusting the import blindly. */
 export function readRuntimeDataset(raw: unknown = runtimeDataset): RuntimeDataset {
   if (!isRecord(raw)) {
-    return { compatibilityDocs: undefined, gaps: [] };
+    return { compatibilityDocs: undefined, gaps: [], globalGaps: [] };
   }
 
-  const gaps: RuntimeGapEntry[] = [];
-  for (const candidate of Array.isArray(raw.gaps) ? raw.gaps : []) {
-    if (!isRecord(candidate)) {
-      continue;
+  const readEntries = (rows: unknown): RuntimeGapEntry[] => {
+    const entries: RuntimeGapEntry[] = [];
+    for (const candidate of Array.isArray(rows) ? rows : []) {
+      if (!isRecord(candidate)) {
+        continue;
+      }
+      const { name, status, note, source } = candidate;
+      if (
+        typeof name === "string" &&
+        (status === "partial" || status === "unimplemented") &&
+        typeof note === "string" &&
+        typeof source === "string"
+      ) {
+        entries.push({ name, status, note, source });
+      }
     }
-    const { name, status, note, source } = candidate;
-    if (
-      typeof name === "string" &&
-      (status === "partial" || status === "unimplemented") &&
-      typeof note === "string" &&
-      typeof source === "string"
-    ) {
-      gaps.push({ name, status, note, source });
-    }
-  }
+    return entries;
+  };
 
   return {
     compatibilityDocs:
       typeof raw.compatibilityDocs === "string" ? raw.compatibilityDocs : undefined,
-    gaps,
+    gaps: readEntries(raw.gaps),
+    globalGaps: readEntries(raw.globalGaps),
   };
 }
 
@@ -135,6 +149,35 @@ export function runtimeBuiltinFindings(
       evidence: `${usage.files.length} file(s), first at ${usage.files[0] ?? "unknown"}`,
       source: gap.source,
       hint: `check ${gap.name} against the compatibility table and cover it with a test before switching.`,
+    });
+  }
+
+  // Globals are not imports: the scan's identifier watch list (fed from this
+  // dataset) is what locates them, so the same evidence bar holds - the file
+  // list comes from the repository, the compatibility claim from the source.
+  const globalFiles = new Map<string, Set<string>>();
+  for (const file of scan.files) {
+    for (const name of file.identifiers ?? []) {
+      const bucket = globalFiles.get(name) ?? new Set<string>();
+      bucket.add(file.path);
+      globalFiles.set(name, bucket);
+    }
+  }
+
+  for (const gap of dataset.globalGaps ?? []) {
+    const files = globalFiles.get(gap.name);
+    if (files === undefined) {
+      continue;
+    }
+    const sorted = [...files].sort();
+    findings.push({
+      id: GLOBAL_GAP_ID,
+      severity: gap.status === "unimplemented" ? "blocker" : "risk",
+      title: `the ${gap.name} global is ${gap.status} in Bun and this project reads it`,
+      detail: gap.note,
+      evidence: `${sorted.length} file(s), first at ${sorted[0] ?? "unknown"}`,
+      source: gap.source,
+      hint: `guard the ${gap.name} access (feature-detect or polyfill) and cover it with a test before switching.`,
     });
   }
 

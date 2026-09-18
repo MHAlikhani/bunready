@@ -1,5 +1,11 @@
 import { defineError, err, ok, type Result } from "../core/errors";
 
+/** The report formats `--format` accepts. */
+export const FORMAT_VALUES = ["human", "json", "sarif", "md"] as const;
+
+/** One of `--format`'s values. */
+export type Format = (typeof FORMAT_VALUES)[number];
+
 /** Everything the CLI understands. */
 export interface CliOptions {
   /** Repository to scan; `.` unless the user passed a path. */
@@ -8,12 +14,18 @@ export interface CliOptions {
   readonly version: boolean;
   readonly json: boolean;
   readonly sarif: boolean;
+  /** Chosen by `--format`; the legacy `--json`/`--sarif` flags map onto it. */
+  readonly format: Format;
   readonly run: boolean;
   readonly runScript: string | undefined;
   readonly config: string | undefined;
   readonly scope: string | undefined;
   readonly baseline: string | undefined;
   readonly writeBaseline: string | undefined;
+  /** Scan only what changed since `since`. */
+  readonly changedOnly: boolean;
+  /** The ref `--changed-only` compares against; defaults to `HEAD~1`. */
+  readonly since: string | undefined;
 }
 
 /** Directory scanned when no path argument is given. */
@@ -32,12 +44,15 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
   let version = false;
   let json = false;
   let sarif = false;
+  let format: Format | undefined;
   let run = false;
   let runScript: string | undefined;
   let config: string | undefined;
   let scope: string | undefined;
   let baseline: string | undefined;
   let writeBaseline: string | undefined;
+  let changedOnly = false;
+  let since: string | undefined;
   let positionalOnly = false;
 
   const valueFor = (flag: string, index: number): Result<string> => {
@@ -85,6 +100,22 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
       case "--sarif":
         sarif = true;
         break;
+      case "--format": {
+        const value = valueFor(arg, index);
+        if (!value.ok) {
+          return value;
+        }
+        if (!(FORMAT_VALUES as readonly string[]).includes(value.value)) {
+          return err(
+            defineError("E_USAGE", `unknown format "${value.value}"`, {
+              hint: `use one of: ${FORMAT_VALUES.join(", ")}.`,
+            }),
+          );
+        }
+        format = value.value as Format;
+        index += 1;
+        break;
+      }
       case "--run":
         run = true;
         break;
@@ -125,6 +156,18 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
         index += 1;
         break;
       }
+      case "--changed-only":
+        changedOnly = true;
+        break;
+      case "--since": {
+        const value = valueFor(arg, index);
+        if (!value.ok) {
+          return value;
+        }
+        since = value.value;
+        index += 1;
+        break;
+      }
       case "--write-baseline": {
         const value = valueFor(arg, index);
         if (!value.ok) {
@@ -162,17 +205,39 @@ export function parseArgs(argv: readonly string[]): Result<CliOptions> {
     );
   }
 
+  if (since !== undefined && !changedOnly) {
+    return err(
+      defineError("E_USAGE", "--since only means something together with --changed-only", {
+        hint: "pass --changed-only, or drop --since.",
+      }),
+    );
+  }
+  if (format !== undefined && (json || sarif)) {
+    return err(
+      defineError(
+        "E_USAGE",
+        "--format and the --json/--sarif flags both choose the report format",
+        {
+          hint: "pass either --format <format> or one legacy flag, not both.",
+        },
+      ),
+    );
+  }
+
   return ok({
     target: target ?? DEFAULT_TARGET,
     help,
     version,
     json,
     sarif,
+    format: format ?? (json ? "json" : sarif ? "sarif" : "human"),
     run,
     runScript,
     config,
     scope,
     baseline,
     writeBaseline,
+    changedOnly,
+    since,
   });
 }

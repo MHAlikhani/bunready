@@ -48,7 +48,11 @@ describe("readRuntimeDataset", () => {
   });
 
   test("a non-object dataset yields an empty one", () => {
-    expect(readRuntimeDataset("nope")).toEqual({ compatibilityDocs: undefined, gaps: [] });
+    expect(readRuntimeDataset("nope")).toEqual({
+      compatibilityDocs: undefined,
+      gaps: [],
+      globalGaps: [],
+    });
   });
 });
 

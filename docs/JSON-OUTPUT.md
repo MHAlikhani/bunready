@@ -29,6 +29,13 @@ can be piped straight into `jq` or a CI step.
 }
 ```
 
+### Additive fields
+
+Fields are added without bumping `schemaVersion`; CI that pins on the version
+only breaks on renames or removals. Current optional fields: `stats.builtinNames`
+(the distinct Node built-ins the project's own code imports, sorted), `targets`,
+`baseline`, `run`.
+
 ## Compatibility
 
 `schemaVersion` is the contract. A patch or minor release of bunready never

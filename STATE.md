@@ -6,189 +6,60 @@ Read this instead of the repository. Keep it under 120 lines.
 
 - Repo: `C:\Users\Admin\Desktop\bunready` - `main`, remote
   `https://github.com/MHAlikhani/bunready.git` (public).
-- Phase 0 (name gate + git bootstrap): **done**.
-- Phase 1 (brand + core scaffold): **done, verified**.
-- Phase 2 (dependency graph + install-phase rules + report): **done, verified**.
-- Phase 3 (runtime-phase rules): **done** - the gap dataset was populated on
-  2026-09-16 from Bun's own compatibility table (17 partial, 1 unimplemented
-  entry, all with the table as source); `partial` is a `risk`, `unimplemented`
-  a `blocker`.
-- Phase 5 (CI/CD): **done** - CI and security are green on main and branch
-  protection is enforced (verified by a rejected push).
-- Phase 6 (release pipeline): **done** - `release.yml`, SBOM, checksums and
-  `docs/RELEASING.md`. npm trusted publishing (O10) must be configured before
-the next tag so releases publish with provenance.
-- Phase 4 (`--run`): **done** - the target is copied to a temporary directory,
-  installed and booted there, and the first real failure is reported.
-- Owner brief (v0.1.0 readiness): config file, `--json` schema version, SARIF,
-  `--run` script choice and copy cap, the self-scan fix, **workspace scanning**
-  with `--scope`, **baseline/regression detection** and the **GitHub Action** are
-  all **done**. Changed-only scanning is the remaining brief item.
-
-All of phase 0-6 is implemented except the first release tag, which needs one
-action outside this repository (O10).
+- Phases 0-6 all **done**: scaffold, dependency graph, runtime rules, CI/CD,
+  release pipeline, `--run`. Package published to npm and JSR; action listed on
+  the GitHub Marketplace; npm trusted publishing live (provenance since 0.3.0).
+- 0.4.4 shipped `--changed-only`/`--since` (O14 resolved), `--format md`, and
+  the Node **globals** gap dataset (`navigator`, `localStorage`,
+  `sessionStorage`, `QuotaExceededError`).
 - Commit dates are deliberate: the history runs 2026-08-06 onwards and new commits
   continue from the previous commit's date, not from the wall clock (D17).
-
-## Name gate evidence (2026-09-15)
-
-- `npm view bunready` -> `E404` (free). Exact-name GitHub search -> only our repo.
 
 ## Decisions locked
 
 | # | Decision | Why |
 | --- | --- | --- |
-| D1 | Exit codes `0` ok / `1` blockers / `2` usage-or-incomplete | CI gate is `exit != 0` only. |
-| D2 | Severity = `blocker` \| `risk` \| `info`, decided by "does this break with no user action?" | ADR 0002. |
-| D3 | `Result<T>` everywhere; nothing throws across module boundaries | Callers render or recover. |
-| D4 | Zero third-party runtime dependencies | Scan-time code runs on user machines. |
-| D5 | `run(argv, io)` is the whole CLI; `index.ts` is 2 lines | Every behaviour is testable. |
-| D6 | Colour never carries meaning alone | `NO_COLOR`, CI logs keep full information. |
-| D7 | Hooks via `simple-git-hooks`; commits gated by commitlint | Pure JS, no binary download. |
-| D8 | Branch protection lands with the CI phase | Required checks need CI to exist. |
-| D9 | Compat data is vendored, versioned JSON with `source` links | ADR 0001. |
-| D10 | `organizeImports` on in Biome | Import order is not a review topic. |
-| D11 | A finding must rest on the lockfile, an installed manifest, or a curated entry with a source | Nothing is inferred from a package name. |
-| D12 | `installScript` is true only when the format records it | A real `bun.lock` records none. |
-| D13 | Lockfile parsers are hand-written; an unparseable lockfile is a reported finding | Reporting zero packages would look like a clean verdict. |
-| D14 | `engines` uses a minimal in-repo semver subset; unparseable ranges report "could not evaluate" | Never turn "we do not know" into a false. |
-| D15 | Native addons are `risk`, never `blocker` | Prebuilds usually exist. |
-| D16 | Coverage threshold is enforced per file, not globally | Bun applies `coverageThreshold` per file. |
-| D17 | New commits continue from the previous commit's date | Requested; one coherent timeline. |
-| D18 | Import scanning is regex-based with strings and comments masked first | No parser dependency; masking removed string-literal false positives. |
-| D19 | No module is listed as a Bun runtime gap without a primary source | ADR 0001; the gap dataset may therefore be empty. |
-| D20 | The source walk is capped (2000 files) and hitting the cap is a finding | A partial inventory must say it is partial. |
-| D21 | CI tests the current release **and the exact floor** `package.json` claims | The floor is a promise; an untested promise is a guess. |
-| D22 | Every action is pinned to a commit SHA with a `# vX` comment | Supply-chain hygiene; the comment is what Dependabot reads. |
-| D23 | No coverage badge until there is a source of truth for it | A hand-updated badge drifts, and auto-committing one conflicts with protected main. |
-| D24 | A release is a tag, and the pipeline refuses to publish unless CI succeeded on exactly that SHA | A tag can point at any commit; the check is the only thing that makes the tag meaningful. |
-| D25 | Publishing uses OIDC (`id-token: write`); no `NPM_TOKEN` exists | A long-lived publish token is the most valuable thing in the repository to steal. |
-| D26 | The SBOM and checksums are generated by our own parsers and a pure function | The same lockfile parser that produces the scan verdict produces the SBOM, so a parser bug shows up in both. |
-| D27 | `--run` always copies the target to a temporary directory, never executes in place, times every command and removes the copy even on failure | Executing a stranger's scripts is only defensible with those four properties. |
-| D28 | A script that times out is a `risk`, and a script that passes is `info` | A server that never exits is not a failure; a green script is the strongest evidence a scan can produce. |
-| D29 | There is no network sandbox, and the report says so | `bun install` reaches the registry exactly as it would for the user; pretending otherwise would be worse than stating it. |
-| D30 | Workflow files are parsed in CI before merge | A workflow with invalid YAML does not fail loudly - GitHub refuses to run it and the repository goes quiet, which is how a broken `release.yml` reached main. |
-| D31 | `bunready.config.json` can suppress a finding but never rewrite its evidence, and the report echoes `failOn` | Acceptance is the repository's decision; the tool stays honest about what it observed. |
-| D32 | `schemaVersion` is the `--json` contract; additions never bump it, renames and removals do | CI can pin on it without pinning on the tool version. |
-| D33 | SARIF is generated from the same findings, in the same process | A second implementation of the rules would drift. |
-| D34 | `--run` refuses a target larger than the copy cap and reports `risk` | Silent skipping would read as "ran fine". |
-| D35 | O5 is resolved by listing `simple-git-hooks` in `trustedDependencies` | The finding was true; the honest fix is to trust the package, not to suppress the rule. |
-| D36 | A workspace scan reads configuration once from the root and applies it to every package; `--scope` narrows to packages and leaves the root out | One report cannot have two different thresholds. |
-| D37 | A baseline fingerprint is rule + package + path, never the message | Rewording a finding must not resurrect one you have already triaged. |
-| D38 | The Action uploads SARIF before it honours the scan's exit code | Otherwise code scanning would never see the findings of a failing run. |
-| D39 | The Action can run `version: local` | It is what lets CI test the action against this repository before the first publish. |
-| D40 | The npm package is `@mh-alikhani/bunready` | npm refuses the unscoped name: its normalised-name rule reports `bunready` as too similar to the existing `bun-ready` (the competitor). A scope keeps the repo, CLI name, action and brand intact, and npm suggested it. |
-| D41 | An **optional** dependency's skipped install script is a `risk`, never a `blocker` | The install tolerates an absent optional package by design, so a skipped script cannot break the install (the fsevents false positive on NestJS proved the rule). |
-| D42 | Any `node:`-prefixed import is a Node built-in regardless of the runtime's own module list | Bun's `builtinModules` omits modules Node has (e.g. `node:sea`); the prefix is unambiguous on its own. |
-| D43 | `bun run smoke` validates real projects (Next.js example, NestJS starter, turborepo basic) before a release | It is network-dependent and its subjects change upstream, so it stays out of CI on purpose. |
+| D1-D43 | Exit codes, severity model, Result<T>, zero deps, vendored data with sources, workspaces, baselines, action | See ADRs 0001-0003 and CHANGELOG 0.1.0-0.3.4. |
+| D44 | `--changed-only` maps a local git diff (`--since`, default `HEAD~1`, plus the dirty tree) onto workspace packages; files outside every package mark the root as changed; no changes is a clean `info` + exit 0 | CI on a monorepo should pay for what the PR touched, not the repo; a silent full scan would defeat the flag. |
+| D45 | `--format md` renders the same findings as human/json/sarif, self-contained, GFM-escaped | PR comments and job summaries need a readable artifact; a second rule set would drift. |
+| D46 | Global gaps are detected by a whole-word identifier watch list fed from the dataset, matched against masked source | Globals are not imports; the dataset decides what is watched, so no claim ships without a source (ADR 0001). |
+| D47 | `stats.builtinNames` is additive; `schemaVersion` stays 1 | Additions never bump the contract (D32). |
 
 ## Public interfaces
 
 ```ts
-// core
-Result<T>, ok, err, isOk, isErr, defineError(code, message, {hint?, cause?}), formatError
-FileSystem { readTextFile, pathExists, listDirectory }, DirectoryEntry, nodeFileSystem()
-TOOL_NAME, TOOL_VERSION
-
+// git (0.4.4)
+gitRoot(dir, env), changedFiles(root, since, env), mapChangedFiles(root, files, patterns, fs)
+GitEnvironment, systemGitEnvironment(), DEFAULT_SINCE
+// report
+renderMarkdownReport(report)   // new
 // scanner
-parseManifest, parseLockfile(kind, text, path?), buildGraph, readTarget, scanTarget
-scanSources(dir, fs, { maxFiles? }), extractImports(text), maskNonCode(text)
-classifySpecifier(specifier), nodeBuiltinNames(), satisfies(version, range)
-
-// rules
-SEVERITIES, countBySeverity, exitCodeForSeverities, compareSeverity
-installFindings(snapshot, graph, runtime), runtimeFindings(scan, usages, dataset?)
-collectNodeBuiltins(scan), readRuntimeDataset(raw?)
-
-// report / cli
-Finding, ScanReport, ScanStats, verdictFor, sortFindings
-renderHumanReport(report, theme), renderJsonReport(report)
-run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
+scanSources(dir, fs, { maxFiles?, excludePaths?, identifiers? })
+// dataset
+readRuntimeDataset(): { compatibilityDocs, gaps, globalGaps? }
+datasetIdentifiers(dataset)
 ```
 
-## File map
+Everything else is unchanged; see the 0.3.x STATE snapshot in git history.
 
-- `src/cli/`, `src/core/`, `src/scanner/`, `src/rules/{install,runtime,data}/`,
-  `src/report/` - see the phase 2/3 sections of the changelog for the split.
-- `.github/workflows/ci.yml` - 3 OSes x {latest, 1.4.0}: install, biome, tsc,
-  coverage, build.
-- `.github/workflows/security.yml` - gitleaks, CodeQL (`security-and-quality`),
-  `bun audit`; weekly schedule.
-- `.github/workflows/release.yml` - tag `v*` -> assert CI green on the SHA ->
-  compile + smoke-test three binaries -> `npm publish --provenance` over OIDC ->
-  attach binaries, `SHA256SUMS` and `bom.json` to the release.
-- `.github/dependabot.yml` - weekly, grouped dev dependencies.
-- `scripts/lib/{sbom,checksums}.ts` - pure release-artifact functions;
-  `scripts/{generate-sbom,checksums}.ts` are the CLI shells.
-- `docs/RELEASING.md` - the process and its two prerequisites.
-- `docs/adr/0003-release-pipeline.md` - why OIDC, binaries, SBOM, tag-gating.
-- `tests/` (19 files), `docs/brand/`, `docs/adr/`, `assets/`, `scripts/`.
+## Verification (0.4.4, local)
 
-## Verification (phase 5, CI run 35027688877 on `5268a87`)
-
-| Check | Where | Result |
-| --- | --- | --- |
-| Lint + format | `bunx biome ci .` | exit 0 |
-| Types | `bunx tsc --noEmit` | exit 0 |
-| Tests | `bun test` | 148 pass / 0 fail |
-| Coverage | `bun test --coverage` | 99.76% funcs / 98.70% lines |
-| CI matrix | GitHub Actions `ci` | 6/6 green: ubuntu, macos, windows x latest, 1.4.0 |
-| Secret scanning | gitleaks | success |
-| Code scanning | CodeQL | success |
-| Dependency audit | `bun audit` | success |
-| Branch protection | rejected push to main | `protected branch hook declined`, 11 checks required (contexts corrected to the real CI check names) |
-| Compiled binary | `bun build --compile` locally | 86 MB exe, `--version` prints 0.1.0 |
-| SBOM / checksums | `bun run scripts/…` | see tests; format asserted against the known SHA-256 of `abc` |
-| Tests after phase 4 | `bun test --coverage` | 170 pass, 98.72% lines |
-| `--run` end to end | `bun run src/cli/index.ts <fixture> --run` | see the phase 4 commit; the fixture's failing script produced a blocker with its stack frame |
-| Workflow YAML | `python3 -c "yaml.safe_load(...)"` on all three | all parse; a new CI job enforces it |
-| Owner-brief slice | `bun test --coverage` | 201 pass, 98.53% lines |
-| After the doc/action fixes (0.3.4) | `bun test` | 264 pass / 0 fail across 32 files |
-| Self scan | `bun run src/cli/index.ts .` | **exit 0** (O5 resolved via `trustedDependencies`) |
-| SARIF | `bun run src/cli/index.ts . --sarif` | SARIF 2.1.0, 2 rules / 2 results |
-| Workspaces + baseline + action slice | `bun test --coverage` | 239 pass, 98.87% lines |
-| Monorepo smoke | `tests/monorepo.test.ts` | root + 2 packages aggregated, `--scope` narrows, pnpm workspaces detected |
-| Baseline smoke | `--write-baseline` then `--baseline` | second run exits 0 against its own baseline |
-| Action | `ci.yml` job `action self test` | runs `uses: ./` with `version: local` and asserts the SARIF file |
+| Check | Result |
+| --- | --- |
+| `bun run check` (types, lint, tests) | green; 297 tests across 34 files |
+| Coverage | see CI; new modules covered by `tests/git-changes.test.ts` and `tests/features-044.test.ts` |
+| Self scan (`bun run src/cli/index.ts .`) | exit 0 |
+| `--format md` self render | renders, verdict risky, sources linked |
+| `--changed-only --since HEAD~5` on this repo | scans root + touched packages, exit 0 |
 
 ## Open questions
 
-- **O1** npm publish scope: `bin` ships TypeScript and needs the `bun` runtime.
 - **O2** `pre-commit` has only ever run against already-formatted trees.
-- **O3** `--run` design undecided: temp-dir strategy, `--no-network`, cleanup on
-  failure (phase 4).
 - **O4** Duplicate versions are in `ScanReport.stats` but not yet a finding.
-- **O7** `node-runtime.json` ships an empty `gaps` list: entries need a primary
-  source that is actually read.
 - **O8** The source walk includes `tests/`; large fixtures may want an exclude list.
-- **O9** Two Dependabot PRs (codeql-action init/analyze to v4) fail their own
-  security run. Triage: hold at v3, or adapt the workflow for v4.
-
-- **O5** *resolved*: `simple-git-hooks` is trusted, so the install script runs and
-  the finding is informational. Self-scan exits 0.
-- **O6** *resolved*: `--json` carries `schemaVersion`.
-- **O11** *resolved*: `--run` measures the tree and refuses to copy past
-  `run.maxCopyMegabytes`.
-- **O12** *resolved*: workspace detection, per-package scanning, aggregation and
-  `--scope` ship; `tests/monorepo.test.ts` covers them.
-- **O13** *resolved*: baseline/regression detection and `action.yml` ship.
-- **O14** Changed-only scanning (diff against a git ref) is not implemented;
-  `--scope` selects packages, not changes.
-- **O15** *resolved*: the package is published; the Action's `version: latest`
-  resolves and `version: local` is what CI exercises.
-
-- **O10** *resolved*: npm trusted publishing is configured; every release since
-  0.3.0 carries provenance attestations.
-- **O17** The unscoped npm name is not available to us: `npm publish bunready`
-  is refused as too similar to `bun-ready`, even though `npm view bunready`
-  returns 404. An appeal to npm support is the only route to it, and it is
-  optional now that D40 publishes a scoped package.
-- **O16** *resolved*: the action is listed on the GitHub Marketplace.
-
-- **O18** *resolved*: the social preview image is uploaded (repository-images
-  serves the custom asset).
-- **O19** *resolved*: the improved npm keywords shipped with the 0.3.4 metadata.
+- **O9** Two Dependabot PRs (codeql-action v4) fail their own security run; triage pending.
 
 ## Next action
 
-1. Changed-only scanning for monorepos (O14).
+1. Triage O9 (Dependabot/codeql-action v4).
+2. Consider O4 (duplicate versions as a finding) for 0.5.0.

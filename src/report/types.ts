@@ -68,6 +68,8 @@ export interface ScanStats {
   readonly lockfiles: readonly string[];
   readonly sourceFiles: number;
   readonly nodeBuiltins: number;
+  /** The distinct Node built-in modules the project's own code imports, sorted. */
+  readonly builtinNames?: readonly string[];
 }
 
 /** The machine-readable shape emitted by `--json`. */

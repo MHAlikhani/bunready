@@ -43,6 +43,7 @@ export { type DirectoryEntry, type FileSystem, nodeFileSystem, type ReadOutcome 
 export { TOOL_NAME, TOOL_VERSION } from "./core/version";
 export { renderHumanReport } from "./report/human";
 export { renderJsonReport } from "./report/json";
+export { renderMarkdownReport } from "./report/markdown";
 export { renderSarifReport } from "./report/sarif";
 export {
   type Finding,
@@ -78,6 +79,17 @@ export {
   type RunOutcome,
   systemRunEnvironment,
 } from "./scanner/execute";
+export {
+  type ChangedFiles,
+  type ChangedMapping,
+  changedFiles,
+  DEFAULT_SINCE,
+  type GitCommandResult,
+  type GitEnvironment,
+  gitRoot,
+  mapChangedFiles,
+  systemGitEnvironment,
+} from "./scanner/git";
 export { buildGraph, type DependencyGraph, knownPackageNames } from "./scanner/graph";
 export {
   LOCKFILE_FILENAMES,

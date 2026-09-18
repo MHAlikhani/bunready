@@ -30,7 +30,7 @@ bunx @mh-alikhani/bunready --help     # every flag
 Scanning this repository prints its findings and one verdict:
 
 ```
-bunready 0.3.4  ·  106 locked packages  ·  bun.lock
+bunready 0.4.4  ·  106 locked packages  ·  bun.lock
 /path/to/your/project
 
 info  the project's own code imports 4 Node built-in module(s)  (runtime/node-builtins)
@@ -62,7 +62,7 @@ permissions:
 
 steps:
   - uses: actions/checkout@v7
-  - uses: MHAlikhani/bunready@v0.3.4
+  - uses: MHAlikhani/bunready@v0.4.4
     with:
       path: .
 ```
@@ -75,7 +75,9 @@ A `workspaces` field or a `pnpm-workspace.yaml` is detected: every package is sc
 
 ```sh
 bunready . --scope packages/api      # one package
+bunready . --changed-only --since HEAD~3  # only what the last commits touched
 bunready . --sarif > bunready.sarif  # SARIF 2.1.0 for code scanning
+bunready . --format md > report.md   # Markdown for PR comments and summaries
 ```
 
 ## Baselines
@@ -114,7 +116,7 @@ A fingerprint is rule + package + path — not the message — so rewording a fi
 
 **How is it different from an estimate-style checker?** Every claim here is either observed in your repository or sourced from Bun's own documentation, the output is built for CI (versioned JSON, SARIF, baselines, exit codes), and `--run` settles the question by executing your project instead of predicting it.
 
-**Does it support monorepos?** Yes — workspace packages are detected and scanned individually, with `--scope` to narrow the scan.
+**Does it support monorepos?** Yes — workspace packages are detected and scanned individually, with `--scope` to narrow the scan, or `--changed-only` to scan only the packages the git history touched since a ref (`--since`, default `HEAD~1`).
 
 ## Status
 
