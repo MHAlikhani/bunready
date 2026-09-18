@@ -177,25 +177,18 @@ run(argv, io?) -> Promise<number>, parseArgs(argv) -> Result<CliOptions>
 - **O15** *resolved*: the package is published; the Action's `version: latest`
   resolves and `version: local` is what CI exercises.
 
-- **O10** npm trusted publishing is not configured; the first release was
-  published from a logged-in workstation instead. Configure the trusted
-  publisher on npmjs.com (repository `MHAlikhani/bunready`, workflow
-  `release.yml`) so later tags publish with provenance and no local credentials.
+- **O10** *resolved*: npm trusted publishing is configured; every release since
+  0.3.0 carries provenance attestations.
 - **O17** The unscoped npm name is not available to us: `npm publish bunready`
   is refused as too similar to `bun-ready`, even though `npm view bunready`
   returns 404. An appeal to npm support is the only route to it, and it is
   optional now that D40 publishes a scoped package.
-- **O16** GitHub Marketplace listing needs one manual step: the release exists
-  and `action.yml` carries `branding`, but a listing requires accepting the
-  Marketplace Developer Agreement and 2FA in the repository UI.
+- **O16** *resolved*: the action is listed on the GitHub Marketplace.
 
-- **O18** The GitHub social preview image needs one manual upload (repository
-  Settings -> General -> Social preview). `assets/og.png` is already 1200x630 and
-  committed; GitHub exposes no API for it.
+- **O18** *resolved*: the social preview image is uploaded (repository-images
+  serves the custom asset).
 - **O19** *resolved*: the improved npm keywords shipped with the 0.3.4 metadata.
 
 ## Next action
 
-1. Publish the Marketplace listing for the action (O16).
-2. Configure npm trusted publishing (O10) before the next release.
-3. Changed-only scanning for monorepos (O14).
+1. Changed-only scanning for monorepos (O14).
