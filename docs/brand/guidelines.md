@@ -16,10 +16,10 @@ Calm, precise, non-alarmist. State the fact, then the next step. Four rules:
 3. **Always give the next step.** Every error carries a `hint`.
 4. **Never claim what was not observed.** A finding needs repo evidence or a
    source link; if there is neither, it does not ship. See
-   [ADR 0001](adr/0001-data-source-policy.md).
+   [ADR 0001](../adr/0001-data-source-policy.md).
 
 Severity is a decision, not a feeling — see
-[ADR 0002](adr/0002-rule-severity-model.md). Colour never carries meaning on its
+[ADR 0002](../adr/0002-rule-severity-model.md). Colour never carries meaning on its
 own: every severity also prints as a word.
 
 ## Logo
@@ -61,7 +61,6 @@ binary cannot drift.
 | Success (no blockers) | `ready - no Bun compatibility blockers found` |
 | Blocked | `blocked - N blocker(s) must be fixed before this repo runs on Bun` |
 | Risky | `risky - N risk(s) to review, no hard blockers` |
-| Not implemented yet | `the scanner engine is not implemented yet (phase 1 scaffold only)` |
 
 ## Trademark hygiene
 
