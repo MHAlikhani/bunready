@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing yet.
 
+## [0.3.0] - 2026-09-18
+
+### Added
+
+- A programmatic entry point (`src/index.ts`, wired to `main` and `exports`), so
+  the scanner can be driven from a script or a test instead of a child process -
+  and so npm can resolve the package instead of reporting that it cannot guess an
+  entry point.
+- `docs/brand/logo-card.svg`: a lockup that carries its own surface, used as the
+  README fallback where `<picture>` is stripped (npm). An SVG loaded through
+  `<img>` resolves `prefers-color-scheme` against the reader's operating system
+  rather than against the page, so a transparent lockup can render
+  light-on-white.
+
+### Fixed
+
+- The README logo is legible on npm in both colour schemes.
+- `tests/args-flags.test.ts` compared an expression with itself, which CodeQL
+  reported as a redundant operation (`js/redundant-operation`).
+
+### Docs
+
+- Changelog link references for 0.2.0 and 0.3.0 were missing.
+
 ## [0.2.0] - 2026-09-16
 
 ### Added
@@ -164,5 +188,7 @@ Nothing yet.
   and that claim needs a primary source. Until then the rule reports what the
   repository imports and cites the compatibility table.
 
-[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.0
+[0.2.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.2.0
 [0.1.0]: https://github.com/MHAlikhani/bunready/releases/tag/v0.1.0
