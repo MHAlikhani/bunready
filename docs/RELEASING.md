@@ -27,8 +27,8 @@ gh run list --workflow ci.yml --limit 3
 #    (package.json + CHANGELOG.md), then land it through a pull request
 
 # 3. Tag the release commit and push the tag
-git tag -a v0.1.0 -m "bunready v0.1.0"
-git push origin v0.1.0
+git tag -a v0.3.4 -m "bunready v0.3.4"
+git push origin v0.3.4
 ```
 
 The tag is the release. `release.yml` then:
@@ -43,7 +43,7 @@ The tag is the release. `release.yml` then:
 ## Verifying a release as a user
 
 ```sh
-gh release download v0.1.0 --repo MHAlikhani/bunready
+gh release download v0.3.4 --repo MHAlikhani/bunready
 sha256sum -c SHA256SUMS
 ```
 
@@ -58,7 +58,7 @@ codes, `--json` fields) gets called out under `### Changed`.
 
 ## What is deliberately missing
 
-- **Code signing.** macOS and Windows binaries are unsigned for `v0.1.0`; users
+- **Code signing.** macOS and Windows binaries are unsigned for now; users
   will see Gatekeeper and SmartScreen warnings. Signing needs certificates and a
   budget decision, not just code.
 - **A coverage badge.** Auto-committing one would require write access to
