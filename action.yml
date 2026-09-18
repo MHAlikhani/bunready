@@ -74,7 +74,9 @@ runs:
         printf 'verdict=%s\n' "${verdict}" >> "${GITHUB_OUTPUT}"
         printf 'bunready: %s (exit %s)\n' "${verdict}" "${status}" >> "${GITHUB_STEP_SUMMARY}"
 
+        set +e
         scan "${INPUT_PATH}" --sarif > "${INPUT_SARIF}"
+        set -e
 
     - name: Upload SARIF
       if: ${{ inputs.upload == 'true' }}

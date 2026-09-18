@@ -30,7 +30,7 @@ bunx @mh-alikhani/bunready --help     # every flag
 Scanning this repository prints its findings and one verdict:
 
 ```
-bunready 0.3.3  ·  106 locked packages  ·  bun.lock
+bunready 0.3.4  ·  106 locked packages  ·  bun.lock
 /path/to/your/project
 
 info  the project's own code imports 4 Node built-in module(s)  (runtime/node-builtins)
@@ -62,7 +62,7 @@ permissions:
 
 steps:
   - uses: actions/checkout@v7
-  - uses: MHAlikhani/bunready@v0.3.3
+  - uses: MHAlikhani/bunready@v0.3.4
     with:
       path: .
 ```

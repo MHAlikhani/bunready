@@ -16,7 +16,8 @@ Read this instead of the repository. Keep it under 120 lines.
 - Phase 5 (CI/CD): **done** - CI and security are green on main and branch
   protection is enforced (verified by a rejected push).
 - Phase 6 (release pipeline): **done** - `release.yml`, SBOM, checksums and
-  `docs/RELEASING.md`. The `v0.1.0` tag is blocked on O10 (npm trusted publishing).
+  `docs/RELEASING.md`. npm trusted publishing (O10) must be configured before
+the next tag so releases publish with provenance.
 - Phase 4 (`--run`): **done** - the target is copied to a temporary directory,
   installed and booted there, and the first real failure is reported.
 - Owner brief (v0.1.0 readiness): config file, `--json` schema version, SARIF,
