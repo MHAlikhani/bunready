@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 120" width="340" height="120" role="img" aria-label="bunready">
+  <title>bunready</title>
+  <!--
+    The lockup for hosts that give us no background guarantee.
+    npm renders a README without <picture>, and an SVG loaded through <img>
+    resolves prefers-color-scheme against the reader's operating system rather
+    than the page - so a transparent lockup can end up light-on-white. This one
+    carries its own surface, which is why it is the fallback rather than the
+    default.
+  -->
+  <rect x="0.5" y="0.5" width="339" height="119" rx="18" fill="#171a1f" stroke="#3a3f4a"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="34" y="34" width="52" height="52" rx="15" stroke="#e0a268" stroke-width="3"/>
+    <path d="M53 49 L68 60 L53 71" stroke="#fbfaf7" stroke-width="4.5"/>
+    <path d="M54 77 H68" stroke="#fbfaf7" stroke-width="4.5"/>
+  </g>
+  <text x="108" y="76"
+        font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="42" font-weight="620" letter-spacing="-1" fill="#f2f1ec">bunready</text>
+</svg>
