@@ -2,14 +2,14 @@
 
 ## Supported versions
 
-bunready is pre-alpha and unpublished. Only the tip of `main` is supported.
-Once releases begin, this section will list the supported version range.
+Only the latest released version is supported; earlier releases receive no
+security fixes. Report issues against the tip of `main`.
 
 ## Scope
 
 The interesting security surface for this project is small but real:
 
-- **Process execution.** A future `--run` flag executes commands on the user's
+- **Process execution.** The `--run` flag executes commands on the user's
   behalf. Treat command construction, argument quoting, and shell selection as
   security-sensitive code.
 - **Data files.** Compatibility data ships as versioned JSON. Its parser must
