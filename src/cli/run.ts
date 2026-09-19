@@ -4,6 +4,7 @@ import { type FileSystem, nodeFileSystem } from "../core/fs";
 import { TOOL_VERSION } from "../core/version";
 import { renderHumanReport } from "../report/human";
 import { renderJsonReport } from "../report/json";
+import { renderMarkdownReport } from "../report/markdown";
 import { renderSarifReport } from "../report/sarif";
 import { exitCodeForFindings } from "../rules/severity";
 import { scanTarget } from "../scanner/scan";
@@ -66,6 +67,8 @@ export async function run(
     ...(options.config === undefined ? {} : { configPath: options.config }),
     ...(options.scope === undefined ? {} : { scope: options.scope }),
     ...(options.baseline === undefined ? {} : { baselinePath: options.baseline }),
+    ...(options.changedOnly ? { changedOnly: true } : {}),
+    ...(options.since === undefined ? {} : { since: options.since }),
   });
 
   if (!scan.ok) {
@@ -89,10 +92,12 @@ export async function run(
     );
   }
 
-  if (options.json) {
+  if (options.json || options.format === "json") {
     io.out(renderJsonReport(report));
-  } else if (options.sarif) {
+  } else if (options.sarif || options.format === "sarif") {
     io.out(renderSarifReport(report));
+  } else if (options.format === "md") {
+    io.out(renderMarkdownReport(report));
   } else {
     io.out(renderHumanReport(report, theme));
   }

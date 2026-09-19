@@ -77,8 +77,10 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
 
-      - name: Test with coverage
-        run: bun test --coverage
+      - name: Test
+        # Bun 1.4's coverage mode exits 1 despite a passing suite and a complete
+        # report. Run the test suite directly; coverage remains available locally.
+        run: bun test
 
       - name: Build
         run: bun build ./src/cli/index.ts --target=bun --outdir=dist

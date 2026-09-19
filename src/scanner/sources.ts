@@ -56,6 +56,8 @@ export interface ImportRef {
 export interface SourceFile {
   readonly path: string;
   readonly imports: readonly ImportRef[];
+  /** Whole-word identifier matches from the scan's watch list, sorted. */
+  readonly identifiers: readonly string[];
 }
 
 /** What the walk found: files, imports, and whether the cap truncated it. */
@@ -379,6 +381,12 @@ export interface ScanSourcesOptions {
   readonly maxFiles?: number;
   /** Substrings matched against each file path; a match skips the file. */
   readonly excludePaths?: readonly string[];
+  /**
+   * Whole-word identifiers to locate in each file, e.g. globals whose
+   * compatibility the vendored dataset records. Matched against masked text,
+   * so occurrences inside strings or comments do not count.
+   */
+  readonly identifiers?: readonly string[];
 }
 
 /**
@@ -390,7 +398,36 @@ export interface ScanSourcesOptions {
  */
 const MAX_READ_CONCURRENCY = 16;
 
-async function readSourceFiles(paths: readonly string[], fs: FileSystem): Promise<SourceFile[]> {
+/** Escapes a literal identifier before it is interpolated into a regular expression. */
+function escapeIdentifier(name: string): string {
+  return name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function identifierPattern(names: readonly string[]): RegExp | undefined {
+  if (names.length === 0) {
+    return undefined;
+  }
+  return new RegExp(`\\b(?:${[...names].sort().map(escapeIdentifier).join("|")})\\b`, "g");
+}
+
+/** The identifiers from the watch list that appear as whole words in the text. */
+export function matchIdentifiers(masked: string, pattern: RegExp): string[] {
+  const found = new Set<string>();
+  for (const match of masked.matchAll(pattern)) {
+    const name = match[0];
+    if (name !== undefined) {
+      found.add(name);
+    }
+  }
+  return [...found].sort((a, b) => a.localeCompare(b));
+}
+
+async function readSourceFiles(
+  paths: readonly string[],
+  fs: FileSystem,
+  identifiers: readonly string[],
+): Promise<SourceFile[]> {
+  const pattern = identifierPattern(identifiers);
   const slots = new Array<SourceFile | undefined>(paths.length);
   let cursor = 0;
 
@@ -404,7 +441,12 @@ async function readSourceFiles(paths: readonly string[], fs: FileSystem): Promis
       }
       const outcome = await fs.readTextFile(path);
       if (outcome.kind === "text") {
-        slots[index] = { path, imports: extractImports(outcome.text) };
+        const masked = maskNonCode(outcome.text);
+        slots[index] = {
+          path,
+          imports: extractImports(outcome.text),
+          identifiers: pattern === undefined ? [] : matchIdentifiers(masked, pattern),
+        };
       }
     }
   };
@@ -464,6 +506,6 @@ export async function scanSources(
     }
   }
 
-  const files = await readSourceFiles(candidates, fs);
+  const files = await readSourceFiles(candidates, fs, options.identifiers ?? []);
   return { files, filesScanned: files.length, truncated };
 }

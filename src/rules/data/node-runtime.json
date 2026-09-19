@@ -1,7 +1,7 @@
 {
-  "datasetVersion": "2026-09-16.1",
+  "datasetVersion": "2026-09-18.1",
   "compatibilityDocs": "https://bun.com/docs/runtime/nodejs-compat",
-  "note": "Runtime compatibility data. Every entry below was read from Bun's own Node.js compatibility table (the `source` URL); see docs/adr/0001-data-source-policy.md. `status: partial` means part of the module's surface is missing; `status: unimplemented` means importing/using it fails outright.",
+  "note": "Runtime compatibility data. Every entry below was read from Bun's own Node.js compatibility table or the globals section of the same page (the `source` URL); see docs/adr/0001-data-source-policy.md. `status: partial` means part of the module's surface is missing; `status: unimplemented` means importing/using it fails outright.",
   "gaps": [
     {
       "name": "sea",
@@ -109,6 +109,32 @@
       "name": "worker_threads",
       "status": "partial",
       "note": "resourceLimits and trackUnmanagedFds are ignored; some execArgv flags are only partly applied; moveMessagePortToContext and locks are missing.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    }
+  ],
+  "globalGaps": [
+    {
+      "name": "navigator",
+      "status": "partial",
+      "note": "The navigator global exists, but navigator.language, navigator.languages and navigator.locks are missing; userAgentData is also absent.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "localStorage",
+      "status": "unimplemented",
+      "note": "Bun has no Storage global: localStorage and sessionStorage are unavailable and referencing them throws.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "sessionStorage",
+      "status": "unimplemented",
+      "note": "Bun has no Storage global: sessionStorage and localStorage are unavailable and referencing them throws.",
+      "source": "https://bun.com/docs/runtime/nodejs-compat"
+    },
+    {
+      "name": "QuotaExceededError",
+      "status": "unimplemented",
+      "note": "The QuotaExceededError global is not implemented in Bun.",
       "source": "https://bun.com/docs/runtime/nodejs-compat"
     }
   ]

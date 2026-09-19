@@ -7,7 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet.
+## [0.4.4] - 2026-09-18
+
+### Added
+
+- `--changed-only` scans only the workspace packages with files changed since a
+  git ref (`--since <ref>`, default `HEAD~1`), including uncommitted work. Root
+  files (manifest, lockfile, CI) mark the root as changed; no changes yields a
+  clean `info` finding and exit 0. Baseline comparison runs against the scanned
+  subset. O14 resolved.
+- `--format md` renders a self-contained Markdown report for PR comments and
+  GitHub step summaries: verdict, summary table, findings grouped by severity
+  with evidence and source links, and a Node built-in usage section.
+- The runtime dataset now records Bun's Node.js **globals** gaps (`navigator`
+  partial; `localStorage`, `sessionStorage`, `QuotaExceededError` unimplemented),
+  each with its source link, reported when the repository's own code reads the
+  global. `partial` stays a `risk`, `unimplemented` a `blocker`.
+- `stats.builtinNames` in `--json`: the distinct Node built-ins the project
+  imports. Additive; `schemaVersion` stays 1.
 
 ## [0.3.4] - 2026-09-16
 
@@ -257,7 +274,8 @@ Nothing yet.
   and that claim needs a primary source. Until then the rule reports what the
   repository imports and cites the compatibility table.
 
-[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/MHAlikhani/bunready/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/MHAlikhani/bunready/releases/tag/v0.4.4
 [0.3.4]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.4
 [0.3.3]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.3
 [0.3.2]: https://github.com/MHAlikhani/bunready/releases/tag/v0.3.2

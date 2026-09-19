@@ -1,6 +1,6 @@
 {
   "name": "@mh-alikhani/bunready",
-  "version": "0.3.4",
+  "version": "0.4.4",
   "description": "Bun-readiness scanner: one command that shows what will break before you move a Node/TS repo to Bun.",
   "keywords": [
     "bun",
