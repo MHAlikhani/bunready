@@ -119,6 +119,21 @@ describe("scanSources", () => {
     expect(scan.truncated).toBe(false);
   });
 
+  test("treats watched identifier names as literals", async () => {
+    const scan = await scanSources(
+      FIXTURE_DIR,
+      memoryFileSystem(
+        repoFiles({
+          "package.json": JSON.stringify({ name: "app" }),
+          "src/index.ts": "global$value global.value globalXvalue",
+        }),
+      ),
+      { identifiers: ["global$value", "global.value"] },
+    );
+
+    expect(scan.files[0]?.identifiers).toEqual(["global.value", "global$value"]);
+  });
+
   test("the file cap is a real number", () => {
     expect(MAX_SOURCE_FILES).toBeGreaterThan(0);
   });

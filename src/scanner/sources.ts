@@ -398,9 +398,9 @@ export interface ScanSourcesOptions {
  */
 const MAX_READ_CONCURRENCY = 16;
 
-/** `$` is a regex anchor outside a character class; identifiers may contain it. */
+/** Escapes a literal identifier before it is interpolated into a regular expression. */
 function escapeIdentifier(name: string): string {
-  return name.replace(/\$/g, "\\$");
+  return name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function identifierPattern(names: readonly string[]): RegExp | undefined {
