@@ -92,12 +92,12 @@ function comparatorsForToken(token: string): Comparator[] | undefined {
     return [];
   }
 
-  const operatorMatch = /^(>=|<=|>|<|=|\^|~)?\s*(.*)$/.exec(trimmed);
-  if (operatorMatch === null) {
-    return undefined;
-  }
-  const operator = operatorMatch[1];
-  const rest = operatorMatch[2] ?? "";
+  // Anchored-prefix parse rather than a trailing \s*(.*)$, which backtracks
+  // quadratically on a long run of spaces - and the range comes from a
+  // repository bunready does not control.
+  const operatorMatch = /^(>=|<=|>|<|=|\^|~)?/.exec(trimmed);
+  const operator = operatorMatch?.[1];
+  const rest = trimmed.slice(operatorMatch?.[0].length ?? 0).trim();
   if (rest === "" || rest === "*" || rest === "x") {
     return [];
   }

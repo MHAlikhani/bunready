@@ -54,9 +54,10 @@ export function patternsFromPnpmWorkspace(text: string): string[] {
     if (!inPackages) {
       continue;
     }
-    const entry = /^-+\s*(.+?)\s*$/.exec(trimmed);
-    if (entry?.[1] !== undefined) {
-      patterns.push(entry[1].replace(/^['"]|['"]$/g, ""));
+    const entry = /^-+ *(.*)$/.exec(trimmed);
+    const value = entry?.[1]?.trim();
+    if (value !== undefined && value !== "") {
+      patterns.push(value.replace(/^['"]|['"]$/g, ""));
     }
   }
 
@@ -123,6 +124,15 @@ async function expandGlob(root: string, segments: string[], fs: FileSystem): Pro
   return prefixes.filter((prefix) => prefix !== "" && prefix !== ".");
 }
 
+/** Linear replacement for `/+$`, which backtracks on a run of slashes. */
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") {
+    end -= 1;
+  }
+  return value.slice(0, end);
+}
+
 export async function findWorkspacePackages(
   root: string,
   patterns: readonly string[],
@@ -131,7 +141,7 @@ export async function findWorkspacePackages(
   const found = new Map<string, WorkspacePackage>();
 
   for (const pattern of patterns) {
-    const cleaned = pattern.replace(/\\/g, "/").replace(/\/+$/, "").replace(/^\.\//, "");
+    const cleaned = stripTrailingSlashes(pattern.replace(/\\/g, "/")).replace(/^\.\//, "");
     if (cleaned === "" || cleaned === ".") {
       continue;
     }
@@ -165,6 +175,6 @@ export async function readPnpmWorkspace(root: string, fs: FileSystem): Promise<s
 
 /** Keep only the packages matching a scope string, by relative path or name. */
 export function scopeMatches(relative: string, scope: string): boolean {
-  const needle = scope.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
+  const needle = stripTrailingSlashes(scope.replace(/\\/g, "/")).replace(/^\.\//, "");
   return relative === needle || relative.includes(needle);
 }
