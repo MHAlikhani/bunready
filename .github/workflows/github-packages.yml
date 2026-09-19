@@ -43,4 +43,4 @@ jobs:
         run: |
           set -euo pipefail
           npm pkg set name="@mhalikhani/bunready"
-          npm publish --registry=https://npm.pkg.github.com
+          npm publish --ignore-scripts --registry=https://npm.pkg.github.com
