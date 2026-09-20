@@ -1,6 +1,6 @@
 {
   "name": "@mh-alikhani/bunready",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Bun-readiness scanner: one command that shows what will break before you move a Node/TS repo to Bun.",
   "keywords": [
     "bun",
@@ -64,6 +64,7 @@
     "check": "bun run typecheck && bun run lint && bun run test",
     "og": "bun run scripts/generate-og-image.ts",
     "smoke": "bun run scripts/smoke-real.ts",
+    "bench": "bun run scripts/bench.ts",
     "prepare": "simple-git-hooks"
   },
   "devDependencies": {
