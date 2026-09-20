@@ -301,8 +301,41 @@ export interface ScanSourcesOptions {
 }
 
 /**
- * Walk the target's own source, breadth first and sorted, so the result is
- * deterministic. Hitting the cap is reported, never hidden.
+ * Bounded-concurrency reads.
+ *
+ * Files are independent, so the ordered part (the walk) and the slow part (the
+ * reads) are separated: the walk decides the order, the pool does the waiting.
+ * Results keep their walk order because each file lands in its own slot.
+ */
+const MAX_READ_CONCURRENCY = 16;
+
+async function readSourceFiles(paths: readonly string[], fs: FileSystem): Promise<SourceFile[]> {
+  const slots = new Array<SourceFile | undefined>(paths.length);
+  let cursor = 0;
+
+  const worker = async (): Promise<void> => {
+    while (cursor < paths.length) {
+      const index = cursor;
+      cursor += 1;
+      const path = paths[index];
+      if (path === undefined) {
+        continue;
+      }
+      const outcome = await fs.readTextFile(path);
+      if (outcome.kind === "text") {
+        slots[index] = { path, imports: extractImports(outcome.text) };
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(MAX_READ_CONCURRENCY, paths.length) }, worker));
+  return slots.filter((file): file is SourceFile => file !== undefined);
+}
+
+/**
+ * Walk the target's own source, breadth first and sorted, then read it. Reading
+ * a repository of hundreds of files one at a time was the slowest thing a scan
+ * did, and the files have no dependency on each other.
  */
 export async function scanSources(
   dir: string,
@@ -313,7 +346,7 @@ export async function scanSources(
   const excludePaths = options.excludePaths ?? [];
   const ignored = new Set<string>(IGNORED_DIRECTORIES);
   const queue: string[] = [dir];
-  const files: SourceFile[] = [];
+  const candidates: string[] = [];
   let truncated = false;
 
   while (queue.length > 0) {
@@ -322,8 +355,7 @@ export async function scanSources(
       break;
     }
 
-    const entries = await fs.listDirectory(current);
-    for (const entry of entries) {
+    for (const entry of await fs.listDirectory(current)) {
       if (entry.isDirectory) {
         if (!ignored.has(entry.name)) {
           queue.push(join(current, entry.name));
@@ -333,7 +365,7 @@ export async function scanSources(
       if (!hasSourceExtension(entry.name)) {
         continue;
       }
-      if (files.length >= maxFiles) {
+      if (candidates.length >= maxFiles) {
         truncated = true;
         continue;
       }
@@ -341,11 +373,7 @@ export async function scanSources(
       if (excludePaths.some((fragment) => path.includes(fragment))) {
         continue;
       }
-      const outcome = await fs.readTextFile(path);
-      if (outcome.kind !== "text") {
-        continue;
-      }
-      files.push({ path: path.replace(/\\/g, "/"), imports: extractImports(outcome.text) });
+      candidates.push(path);
     }
 
     if (truncated) {
@@ -353,5 +381,6 @@ export async function scanSources(
     }
   }
 
+  const files = await readSourceFiles(candidates, fs);
   return { files, filesScanned: files.length, truncated };
 }

@@ -32,3 +32,4 @@ desktop.ini
 !.vscode/settings.json
 *.tsbuildinfo
 .smoke-tmp/
+.bench-tmp/
