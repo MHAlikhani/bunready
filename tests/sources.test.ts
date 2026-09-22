@@ -95,6 +95,7 @@ describe("scanSources", () => {
     "src/notes.md": "import from text file",
     "node_modules/ignored/index.js": 'require("node:cluster");',
     "dist/bundle.js": 'require("node:vm");',
+    ".agents/skills/example/scripts/ignored.js": 'require("node:child_process");',
   });
 
   test("walks the repository's own source and stops at the ignored directories", async () => {
