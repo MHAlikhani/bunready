@@ -37,6 +37,7 @@ export const IGNORED_DIRECTORIES = [
   ".output",
   ".turbo",
   ".cache",
+  ".agents",
 ] as const;
 
 /** Cap on how many source files are read per target. */
